@@ -10,11 +10,11 @@ app = Flask(__name__)
 TOKEN = os.environ.get('TELEGRAM_TOKEN')
 QURAN_API_BASE_URL = 'http://api.alquran.cloud/v1'
 
-# የቃሪዎችን ዝርዝር ወደ 3 ቀይረናል
+# የቃሪዎችን ዝርዝር እና የተስተካከለውን የሚሻሪን መገኛ አካተናል
 RECITERS = {
     'abdulbasit': {'name': 'Abdul Basit Abdus Samad', 'identifier': 'abdul_basit_murattal'},
     'minshawi': {'name': 'Muhammad Siddiq Al-Minshawi', 'identifier': 'minshawi'},
-    'mishary': {'name': 'Mishary Rashid Alafasy', 'identifier': 'mishaari_raashid_al_afasy'}
+    'mishary': {'name': 'Mishary Rashid Alafasy', 'identifier': 'alafasy'}
 }
 
 # ቴሌግራም ላይ መልዕክት ለመላክ የሚረዳ ተግባር (function)
@@ -67,8 +67,9 @@ def handle_juz(chat_id, args):
     except Exception:
         send_telegram_message(chat_id, "ይቅርታ፣ ጁዙን ማግኘት አልቻልኩም።")
 
-# *** የተስተካከለው የድምጽ መላኪያ ተግባር (ሊንክ በመላክ) ***
+# *** የተሻሻለው የድምጽ መላኪያ ተግባር (ሊንኩን ከመላኩ በፊት ያረጋግጣል) ***
 def handle_recitation(chat_id, args, reciter_key):
+    full_audio_url = "" # Define url variable to be accessible in except block
     try:
         if not args:
             send_telegram_message(chat_id, f"እባክዎ የሱራ ቁጥር ያስገቡ።\nአጠቃቀም: `/{reciter_key} 2`")
@@ -88,7 +89,13 @@ def handle_recitation(chat_id, args, reciter_key):
         padded_surah_number = str(surah_number).zfill(3)
         full_audio_url = f"https://download.quranicaudio.com/quran/{reciter_identifier}/{padded_surah_number}.mp3"
         
-        # ፋይሉን ከመላክ ይልቅ ቀጥታ የማውረጃ ሊንክ እንልካለን
+        # ሊንኩን ከመላካችን በፊት መስራቱን እናረጋግጣለን
+        response = requests.head(full_audio_url, timeout=10)
+        if response.status_code != 200:
+            # ሊንኩ የማይሰራ ከሆነ ስህተት እንፈጥራለን
+            raise Exception(f"File not found, status code: {response.status_code}")
+
+        # ሊንኩ የሚሰራ ከሆነ እንልካለን
         message_text = (
             f"🔊 *Surah {surah_name_english}* by *{reciter_name}*\n\n"
             f"🔗 [Download / Play Audio Here]({full_audio_url})\n\n"
@@ -97,9 +104,15 @@ def handle_recitation(chat_id, args, reciter_key):
         send_telegram_message(chat_id, message_text)
 
     except (IndexError, ValueError):
-        send_telegram_message(chat_id, f"እባክዎ ትክክለኛ የሱራ ቁጥር ያስገቡ (1-114)።\nአጠቃቀም: `/{reciter_key} 2`")
+        send_telegram_message(chat_id, f"እባкዎ ትክክለኛ የሱራ ቁጥር ያስገቡ (1-114)።\nአጠቃቀም: `/{reciter_key} 2`")
     except Exception as e:
-        send_telegram_message(chat_id, "ይቅርታ፣ የድምጽ ፋይሉን ሊንክ ማግኘት አልቻልኩም። እባክዎ እንደገና ይሞክሩ።")
+        # ዝርዝር የስህተት መልዕክት እንልካለን
+        error_message = (
+            "ይቅርታ፣ የድምጽ ፋይሉን ሊንክ ማግኘት አልቻልኩም።\n\n"
+            f"**ምክንያት:** የድምጽ ፋይሉ በድረ-ገጹ ላይ አልተገኘም (404 Error)።\n"
+            f"**የተሞከረው ሊንክ:** `{full_audio_url}`"
+        )
+        send_telegram_message(chat_id, error_message)
 
 # ዋናው መግቢያ (Webhook)
 @app.route('/', methods=['POST'])
@@ -115,7 +128,6 @@ def webhook():
             args = command_parts[1:]
 
             if command == '/start':
-                # የ/start መልዕክቱን አስተካክለናል
                 welcome_message = (
                     "Assalamu 'alaikum,\n\n"
                     "ወደ ቁርአን ቦት በደህና መጡ! (3 ቃሪዎች)\n\n"
@@ -140,4 +152,4 @@ def webhook():
 
 @app.route('/')
 def index():
-    return "Bot is running with 3 reciters and link fix!"
+    return "Bot is running with link verification!"
