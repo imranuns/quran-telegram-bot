@@ -8,13 +8,12 @@ app = Flask(__name__)
 
 # ከ BotFather ያገኘነውን ቶክን እናስቀምጣለን
 TOKEN = os.environ.get('TELEGRAM_TOKEN')
-QURAN_TEXT_API_URL = 'http://api.alquran.cloud/v1'
-QURAN_AUDIO_API_URL = 'https://api.quran.com/api/v4'
+QURAN_API_BASE_URL = 'http://api.alquran.cloud/v1'
 
-# የቃሪዎች ዝርዝር (ከአዲሱ API)
+# የቃሪዎች ዝርዝር
 RECITERS = {
-    'abdulbasit': {'name': 'Abdul Basit Abdus Samad', 'identifier': 7},
-    'yasser': {'name': 'Yasser Al-Dosari', 'identifier': 11}
+    'abdulbasit': {'name': 'Abdul Basit Abdus Samad', 'identifier': 'abdul_basit_murattal'},
+    'yasser': {'name': 'Yasser Al-Dosari', 'identifier': 'yasser_ad-dussary'},
 }
 
 # የተጠቃሚ ቋንቋ ምርጫን ለማስቀመጥ
@@ -27,22 +26,20 @@ MESSAGES = {
         "language_prompt": "እባክዎ ቋንቋ ይምረጡ:",
         "language_selected": "✅ ቋንቋ ወደ አማርኛ ተቀይሯል።",
         "support_message": "ለእርዳታ ወይም አስተያየት፣ እባክዎ ወደ @YourSupportUsername መልዕክት ይላኩ።",
-        "surah_prompt": "እባክዎ የሱራ ቁጥር ያስገቡ (1-114)።\nአጠቃቀም: `/surah 2`",
+        "surah_prompt": "እባкዎ ትክክለኛ የሱራ ቁጥር ያስገቡ (1-114)።\nአጠቃቀም: `/surah 2`",
         "juz_prompt": "እባкዎ ትክክለኛ የጁዝ ቁጥር ያስገቡ (1-30)።\nአጠቃቀም: `/juz 15`",
-        "fetching_audio": "🔊 የ *{surah_name}* ቅጂ በ *{reciter_name}* በማዘጋጀት ላይ ነው...",
         "audio_link_message": "🔗 [Download / Play Audio Here]({audio_url})\n\nከላይ ያለውን ሰማያዊ ሊንክ በመጫን ድምጹን በቀጥታ ማዳመጥ ወይም ማውረድ ይችላሉ።",
-        "error_fetching": "ይቅርታ፣ የድምጽ ፋይሉን ማግኘት አልቻልኩም። እባክዎ እንደገና ይሞክሩ።\n\nስህተት: {e}"
+        "error_fetching": "ይቅርታ፣ የድምጽ ፋይሉን ሊንክ ማግኘት አልቻልኩም።\n\n**ምክንያት:** የድምጽ ፋይሉ በድረ-ገጹ ላይ አልተገኘም (404 Error)።\n**የተሞከረው ሊንክ:** `{full_audio_url}`"
     },
     'en': {
-        "welcome": "Assalamu 'alaikum,\n\nWelcome to the Quran Bot!\n\n📖 *For Text:*\n`/surah <number>`\n`/juz <number>`\n\n🔊 *For Audio (Full Surah Link):*\n`/abdulbasit <number>`\n`/yasser <number>`\n\n⚙️ *Other Commands:*\n`/language` - To change language\n`/support` - For help",
+        "welcome": "Assalamu 'alaikum,\n\nWelcome to the Quran Bot!\n\n📖 *For Text:*\n`/surah <number>`\n`/juz <number>`\n\n� *For Audio (Full Surah Link):*\n`/abdulbasit <number>`\n`/yasser <number>`\n\n⚙️ *Other Commands:*\n`/language` - To change language\n`/support` - For help",
         "language_prompt": "Please select a language:",
         "language_selected": "✅ Language changed to English.",
         "support_message": "For support or feedback, please contact @YourSupportUsername.",
         "surah_prompt": "Please provide a valid Surah number (1-114).\nUsage: `/surah 2`",
         "juz_prompt": "Please provide a valid Juz' number (1-30).\nUsage: `/juz 15`",
-        "fetching_audio": "🔊 Fetching audio of *{surah_name}* by *{reciter_name}*...",
         "audio_link_message": "🔗 [Download / Play Audio Here]({audio_url})\n\nYou can listen or download the audio by clicking the blue link above.",
-        "error_fetching": "Sorry, I could not fetch the audio. Please try again.\n\nError: {e}"
+        "error_fetching": "Sorry, I could not get the audio link.\n\n**Reason:** The audio file was not found on the server (404 Error).\n**Attempted Link:** `{full_audio_url}`"
     },
     'ar': {
         "welcome": "السلام عليكم\n\nأهلاً بك في بوت القرآن!\n\n📖 *للنص:*\n`/surah <رقم>`\n`/juz <رقم>`\n\n🔊 *للصوت (رابط السورة كاملة):*\n`/abdulbasit <رقم>`\n`/yasser <رقم>`\n\n⚙️ *أوامر أخرى:*\n`/language` - لتغيير اللغة\n`/support` - للمساعدة",
@@ -51,9 +48,8 @@ MESSAGES = {
         "support_message": "للمساعدة أو الاقتراحات، يرجى التواصل مع @YourSupportUsername.",
         "surah_prompt": "الرجاء إدخال رقم سورة صحيح (1-114).\nمثال: `/surah 2`",
         "juz_prompt": "الرجاء إدخال رقم جزء صحيح (1-30).\nمثال: `/juz 15`",
-        "fetching_audio": "🔊 جاري تحضير صوت *{surah_name}* بصوت *{reciter_name}*...",
         "audio_link_message": "🔗 [تحميل / تشغيل الصوت هنا]({audio_url})\n\nيمكنك الاستماع أو تحميل الصوت بالضغط على الرابط الأزرق أعلاه.",
-        "error_fetching": "عذراً، لم أتمكن من جلب الملف الصوتي. يرجى المحاولة مرة أخرى.\n\nخطأ: {e}"
+        "error_fetching": "عذراً، لم أتمكن من جلب رابط الملف الصوتي.\n\n**السبب:** لم يتم العثور على الملف الصوتي على الخادم (خطأ 404).\n**الرابط الذي تمت تجربته:** `{full_audio_url}`"
     },
     'tr': {
         "welcome": "Esselamu aleyküm,\n\nKuran Bot'a hoş geldiniz!\n\n📖 *Metin İçin:*\n`/surah <numara>`\n`/juz <numara>`\n\n🔊 *Ses İçin (Tam Sure Linki):*\n`/abdulbasit <numara>`\n`/yasser <numara>`\n\n⚙️ *Diğer Komutlar:*\n`/language` - Dili değiştirmek için\n`/support` - Yardım için",
@@ -62,12 +58,10 @@ MESSAGES = {
         "support_message": "Destek veya geri bildirim için lütfen @YourSupportUsername ile iletişime geçin.",
         "surah_prompt": "Lütfen geçerli bir Sure numarası girin (1-114).\nKullanım: `/surah 2`",
         "juz_prompt": "Lütfen geçerli bir Cüz numarası girin (1-30).\nKullanım: `/juz 15`",
-        "fetching_audio": "🔊 *{reciter_name}* tarafından okunan *{surah_name}* suresinin sesi hazırlanıyor...",
         "audio_link_message": "🔗 [Sesi İndir / Oynat]({audio_url})\n\nYukarıdaki mavi bağlantıya tıklayarak sesi dinleyebilir veya indirebilirsiniz.",
-        "error_fetching": "Üzgünüm, ses dosyasını getiremedim. Lütfen tekrar deneyin.\n\nHata: {e}"
+        "error_fetching": "Üzgünüm, ses bağlantısını alamadım.\n\n**Neden:** Ses dosyası sunucuda bulunamadı (404 Hatası).\n**Denenen Bağlantı:** `{full_audio_url}`"
     }
 }
-
 
 # ቴሌግራም ላይ መልዕክት ለመላክ የሚረዳ ተግባር
 def send_telegram_message(chat_id, text, parse_mode="Markdown", reply_markup=None):
@@ -88,7 +82,7 @@ def handle_surah(chat_id, args, lang):
     try:
         surah_number = int(args[0])
         if not 1 <= surah_number <= 114: raise ValueError
-        response = requests.get(f"{QURAN_TEXT_API_URL}/surah/{surah_number}")
+        response = requests.get(f"{QURAN_API_BASE_URL}/surah/{surah_number}")
         data = response.json()['data']
         surah_name = data['englishName']
         ayahs = data['ayahs']
@@ -100,14 +94,15 @@ def handle_surah(chat_id, args, lang):
     except (IndexError, ValueError):
         send_telegram_message(chat_id, MESSAGES[lang]["surah_prompt"])
     except Exception:
-        send_telegram_message(chat_id, MESSAGES[lang]["error_fetching"].format(e=""))
+        send_telegram_message(chat_id, MESSAGES[lang]["error_fetching"].format(full_audio_url="N/A"))
+
 
 # ጁዝ በጽሁፍ ለመላክ የሚረዳ ተግባር
 def handle_juz(chat_id, args, lang):
     try:
         juz_number = int(args[0])
         if not 1 <= juz_number <= 30: raise ValueError
-        response = requests.get(f"{QURAN_TEXT_API_URL}/juz/{juz_number}")
+        response = requests.get(f"{QURAN_API_BASE_URL}/juz/{juz_number}")
         data = response.json()['data']
         ayahs = data['ayahs']
         message = f"📗 *Juz' {juz_number}*\n\n"
@@ -122,10 +117,11 @@ def handle_juz(chat_id, args, lang):
     except (IndexError, ValueError):
         send_telegram_message(chat_id, MESSAGES[lang]["juz_prompt"])
     except Exception:
-        send_telegram_message(chat_id, MESSAGES[lang]["error_fetching"].format(e=""))
+        send_telegram_message(chat_id, MESSAGES[lang]["error_fetching"].format(full_audio_url="N/A"))
 
 # የድምጽ መላኪያ ተግባር
 def handle_recitation(chat_id, args, lang, reciter_key):
+    full_audio_url = ""
     try:
         if not args:
             send_telegram_message(chat_id, MESSAGES[lang]["surah_prompt"])
@@ -136,30 +132,30 @@ def handle_recitation(chat_id, args, lang, reciter_key):
         
         reciter_info = RECITERS[reciter_key]
         reciter_name = reciter_info['name']
-        reciter_id = reciter_info['identifier']
+        reciter_identifier = reciter_info['identifier']
         
-        surah_info_response = requests.get(f"{QURAN_TEXT_API_URL}/surah/{surah_number}")
-        surah_name_english = surah_info_response.json()['data']['englishName']
+        surah_info_response = requests.get(f"{QURAN_API_BASE_URL}/surah/{surah_number}")
+        surah_data = surah_info_response.json()['data']
+        surah_name_english = surah_data['englishName']
         
-        send_telegram_message(chat_id, MESSAGES[lang]["fetching_audio"].format(surah_name=surah_name_english, reciter_name=reciter_name))
-
-        audio_api_url = f"{QURAN_AUDIO_API_URL}/recitations/{reciter_id}/by_surah/{surah_number}"
-        audio_response = requests.get(audio_api_url)
-        audio_response.raise_for_status()
-
-        audio_files = audio_response.json().get('audio_files')
-        if not audio_files:
-            raise Exception("Audio URL not found in API response.")
-
-        audio_url = audio_files[0]['url']
+        padded_surah_number = str(surah_number).zfill(3)
+        full_audio_url = f"https://download.quranicaudio.com/quran/{reciter_identifier}/{padded_surah_number}.mp3"
         
-        message_text = MESSAGES[lang]["audio_link_message"].format(audio_url=audio_url)
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        response = requests.get(full_audio_url, headers=headers, stream=True, timeout=15)
+        
+        if response.status_code != 200:
+            raise Exception(f"File not found, status code: {response.status_code}")
+
+        message_text = MESSAGES[lang]["audio_link_message"].format(audio_url=full_audio_url)
         send_telegram_message(chat_id, message_text)
 
     except (IndexError, ValueError):
         send_telegram_message(chat_id, MESSAGES[lang]["surah_prompt"])
     except Exception as e:
-        send_telegram_message(chat_id, MESSAGES[lang]["error_fetching"].format(e=e))
+        send_telegram_message(chat_id, MESSAGES[lang]["error_fetching"].format(full_audio_url=full_audio_url))
 
 # ዋናው መግቢያ (Webhook)
 @app.route('/', methods=['POST'])
@@ -191,7 +187,7 @@ def webhook():
 
         if command == '/start':
             send_telegram_message(chat_id, MESSAGES[lang]["welcome"])
-        
+
         elif command == '/language':
             keyboard = {
                 "inline_keyboard": [
@@ -206,7 +202,7 @@ def webhook():
                 ]
             }
             send_telegram_message(chat_id, MESSAGES[lang]["language_prompt"], reply_markup=keyboard)
-
+        
         elif command == '/support':
             send_telegram_message(chat_id, MESSAGES[lang]["support_message"])
 
@@ -221,4 +217,4 @@ def webhook():
 
 @app.route('/')
 def index():
-    return "Bot is running with new API and multi-language support!"
+    return "Bot is running with user's selected code and new features!"
