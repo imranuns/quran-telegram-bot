@@ -7,11 +7,8 @@ from flask import Flask, request
 app = Flask(__name__)
 
 # --- Environment Variables ---
-# ከ BotFather ያገኘነውን ቶክን እናስቀምጣለን
 TOKEN = os.environ.get('TELEGRAM_TOKEN')
-# *** አዲስ: የእርስዎን የቴሌግራም User ID እዚህ ያስገቡ (Vercel ላይ) ***
 ADMIN_ID = os.environ.get('ADMIN_ID')
-# *** አዲስ: ተጠቃሚዎች እንዲቀላቀሉ የሚፈልጉትን ቻናል እዚህ ያስገቡ (Vercel ላይ) ***
 CHANNEL_ID = os.environ.get('CHANNEL_ID') # Example: '@MyChannelName'
 
 QURAN_API_BASE_URL = 'http://api.alquran.cloud/v1'
@@ -28,44 +25,52 @@ user_languages = {}
 # የቦቱ መልዕክቶች በአራት ቋንቋ
 MESSAGES = {
     'am': {
-        "welcome": "Assalamu 'alaikum,\n\nወደ ቁርአን ቦት በደህና መጡ!\n\n📖 *ለጽሁፍ:*\n`/surah <ቁጥር>`\n`/juz <ቁጥር>`\n\n🔊 *ለድምጽ (ሙሉ ሱራ ሊንክ):*\n`/abdulbasit <ቁጥር>`\n`/yasser <ቁጥር>`\n\n⚙️ *ሌሎች ትዕዛዞች:*\n`/language` - ቋንቋ ለመቀየር\n`/support` - ለእርዳታ",
+        "welcome": "🕌 Assalamu Alaikum {username}\n\n📖 ወደ ቁርአን ቦት በደህና መጡ!\n\n✍️ ለጽሁፍ የቁርአን አንቀጾች:\n\n/surah <ቁጥር> — ሱራ ቁጥር አስገባ\n/juz <ቁጥር> — ጁዝ ቁጥር አስገባ\n\n🔊 ለድምጽ (ሙሉ ሱራ ኮርኖች):\n/abdulbasit <ቁጥር> 🎙️\n/yasser <ቁጥር> 🎧\n\n⚙️ ሌሎች ትዕዛዞች:\n🌐 /language — ቋንቋ ለመቀየር\n🆘 /support — ለእርዳታ ያግኙ",
         "language_prompt": "እባክዎ ቋንቋ ይምረጡ:",
         "language_selected": "✅ ቋንቋ ወደ አማርኛ ተቀይሯል።",
-        "support_message": "ለእርዳታ ወይም አስተያየት፣ እባክዎ ወደ @YourSupportUsername መልዕክት ይላኩ።",
+        "support_message": "🆘 ለእርዳታ ወይም አስተያየት፣ እባክዎ አድሚኑን በቀጥታ ያግኙ።",
+        "support_button": "👤 አድሚኑን አግኝ",
         "force_join": "🙏 ቦቱን ለመጠቀም እባክዎ መጀመሪያ ቻናላችንን ይቀላቀሉ።",
+        "join_button_text": "✅ please first join channel",
         "surah_prompt": "እባкዎ ትክክለኛ የሱራ ቁጥር ያስገቡ (1-114)።\nአጠቃቀም: `/surah 2`",
         "juz_prompt": "እባкዎ ትክክለኛ የጁዝ ቁጥር ያስገቡ (1-30)።\nአጠቃቀም: `/juz 15`",
         "audio_link_message": "🔗 [Download / Play Audio Here]({audio_url})\n\nከላይ ያለውን ሰማያዊ ሊንክ በመጫን ድምጹን በቀጥታ ማዳመጥ ወይም ማውረድ ይችላሉ።",
         "error_fetching": "ይቅርታ፣ የድምጽ ፋይሉን ሊንክ ማግኘት አልቻልኩም።\n\n**ምክንያት:** የድምጽ ፋይሉ በድረ-ገጹ ላይ አልተገኘም (404 Error)።\n**የተሞከረው ሊንክ:** `{full_audio_url}`"
     },
     'en': {
-        "welcome": "Assalamu 'alaikum,\n\nWelcome to the Quran Bot!\n\n📖 *For Text:*\n`/surah <number>`\n`/juz <number>`\n\n🔊 *For Audio (Full Surah Link):*\n`/abdulbasit <number>`\n`/yasser <number>`\n\n⚙️ *Other Commands:*\n`/language` - To change language\n`/support` - For help",
+        "welcome": "🕌 Assalamu Alaikum {username}\n\n📖 Welcome to the Quran Bot!\n\n✍️ For Quran verses in text:\n\n/surah <number> — Enter Surah number\n/juz <number> — Enter Juz' number\n\n🔊 For Audio (Full Surah Recitations):\n/abdulbasit <number> 🎙️\n/yasser <number> 🎧\n\n⚙️ Other Commands:\n🌐 /language — To change language\n🆘 /support — Get help",
         "language_prompt": "Please select a language:",
         "language_selected": "✅ Language changed to English.",
-        "support_message": "For support or feedback, please contact @YourSupportUsername.",
+        "support_message": "🆘 For help or feedback, please contact the admin directly.",
+        "support_button": "👤 Contact Admin",
         "force_join": "🙏 To use the bot, please join our channel first.",
+        "join_button_text": "✅ please first join channel",
         "surah_prompt": "Please provide a valid Surah number (1-114).\nUsage: `/surah 2`",
         "juz_prompt": "Please provide a valid Juz' number (1-30).\nUsage: `/juz 15`",
         "audio_link_message": "🔗 [Download / Play Audio Here]({audio_url})\n\nYou can listen or download the audio by clicking the blue link above.",
         "error_fetching": "Sorry, I could not get the audio link.\n\n**Reason:** The audio file was not found on the server (404 Error).\n**Attempted Link:** `{full_audio_url}`"
     },
     'ar': {
-        "welcome": "السلام عليكم\n\nأهلاً بك في بوت القرآن!\n\n� *للنص:*\n`/surah <رقم>`\n`/juz <رقم>`\n\n🔊 *للصوت (رابط السورة كاملة):*\n`/abdulbasit <رقم>`\n`/yasser <رقم>`\n\n⚙️ *أوامر أخرى:*\n`/language` - لتغيير اللغة\n`/support` - للمساعدة",
+        "welcome": "🕌 السلام عليكم {username}\n\n📖 أهلاً بك في بوت القرآن!\n\n✍️ لآيات القرآن كنص:\n\n/surah <رقم> — أدخل رقم السورة\n/juz <رقم> — أدخل رقم الجزء\n\n🔊 للصوت (تلاوات السور كاملة):\n/abdulbasit <رقم> 🎙️\n/yasser <رقم> 🎧\n\n⚙️ أوامر أخرى:\n🌐 /language — لتغيير اللغة\n🆘 /support — للحصول على مساعدة",
         "language_prompt": "الرجاء اختيار اللغة:",
         "language_selected": "✅ تم تغيير اللغة إلى العربية.",
-        "support_message": "للمساعدة أو الاقتراحات، يرجى التواصل مع @YourSupportUsername.",
+        "support_message": "🆘 للمساعدة أو الاقتراحات، يرجى التواصل مع المسؤول مباشرة.",
+        "support_button": "👤 تواصل مع المسؤول",
         "force_join": "🙏 لاستخدام البوت، يرجى الانضمام إلى قناتنا أولاً.",
+        "join_button_text": "✅ please first join channel",
         "surah_prompt": "الرجاء إدخال رقم سورة صحيح (1-114).\nمثال: `/surah 2`",
         "juz_prompt": "الرجاء إدخال رقم جزء صحيح (1-30).\nمثال: `/juz 15`",
         "audio_link_message": "🔗 [تحميل / تشغيل الصوت هنا]({audio_url})\n\nيمكنك الاستماع أو تحميل الصوت بالضغط على الرابط الأزرق أعلاه.",
         "error_fetching": "عذراً، لم أتمكن من جلب رابط الملف الصوتي.\n\n**السبب:** لم يتم العثور على الملف الصوتي على الخادم (خطأ 404).\n**الرابط الذي تمت تجربته:** `{full_audio_url}`"
     },
     'tr': {
-        "welcome": "Esselamu aleyküm,\n\nKuran Bot'a hoş geldiniz!\n\n📖 *Metin İçin:*\n`/surah <numara>`\n`/juz <numara>`\n\n🔊 *Ses İçin (Tam Sure Linki):*\n`/abdulbasit <numara>`\n`/yasser <numara>`\n\n⚙️ *Diğer Komutlar:*\n`/language` - Dili değiştirmek için\n`/support` - Yardım için",
+        "welcome": "🕌 Esselamu aleyküm {username}\n\n📖 Kuran Bot'a hoş geldiniz!\n\n✍️ Metin olarak Kur'an ayetleri için:\n\n/surah <numara> — Sure numarasını girin\n/juz <numara> — Cüz numarasını girin\n\n🔊 Ses İçin (Tam Sure Tilavetleri):\n/abdulbasit <numara> 🎙️\n/yasser <numara> 🎧\n\n⚙️ Diğer Komutlar:\n🌐 /language — Dili değiştirmek için\n🆘 /support — Yardım alın",
         "language_prompt": "Lütfen bir dil seçin:",
         "language_selected": "✅ Dil Türkçe olarak değiştirildi.",
-        "support_message": "Destek veya geri bildirim için lütfen @YourSupportUsername ile iletişime geçin.",
+        "support_message": "🆘 Yardım veya geri bildirim için lütfen doğrudan yöneticiyle iletişime geçin.",
+        "support_button": "👤 Yöneticiyle İletişime Geç",
         "force_join": "🙏 Botu kullanmak için lütfen önce kanalımıza katılın.",
+        "join_button_text": "✅ please first join channel",
         "surah_prompt": "Lütfen geçerli bir Sure numarası girin (1-114).\nKullanım: `/surah 2`",
         "juz_prompt": "Lütfen geçerli bir Cüz numarası girin (1-30).\nKullanım: `/juz 15`",
         "audio_link_message": "🔗 [Sesi İndir / Oynat]({audio_url})\n\nYukarıdaki mavi bağlantıya tıklayarak sesi dinleyebilir veya indirebilirsiniz.",
@@ -87,10 +92,10 @@ def send_telegram_message(chat_id, text, parse_mode="Markdown", reply_markup=Non
 def get_user_lang(chat_id):
     return user_languages.get(chat_id, 'am')
 
-# *** አዲስ: ተጠቃሚው ቻናሉን መቀላቀሉን የሚያረጋግጥ ተግባር ***
+# ተጠቃሚው ቻናሉን መቀላቀሉን የሚያረጋግጥ ተግባር
 def is_user_member(user_id):
     if not CHANNEL_ID:
-        return True  # ቻናል ካልተቀናበረ፣ ሁሉንም ፍቀድ
+        return True
     try:
         url = f"https://api.telegram.org/bot{TOKEN}/getChatMember"
         payload = {'chat_id': CHANNEL_ID, 'user_id': user_id}
@@ -101,7 +106,7 @@ def is_user_member(user_id):
             return status in ['creator', 'administrator', 'member']
     except Exception as e:
         print(f"Error checking membership: {e}")
-        return False # Fail-safe
+        return False
     return False
 
 # ሱራ በጽሁፍ ለመላክ የሚረዳ ተግባር
@@ -206,20 +211,21 @@ def webhook():
         message = update['message']
         user_id = message['from']['id']
         chat_id = message['chat']['id']
+        user_name = message['from'].get('first_name', 'User')
         text = message.get('text', '').lower()
         command_parts = text.split()
         command = command_parts[0]
         args = command_parts[1:]
         lang = get_user_lang(chat_id)
 
-        # *** አዲስ: የአድሚን እና የቻናል አባልነት ማረጋገጫ ***
+        # የአድሚን እና የቻናል አባልነት ማረጋገጫ
         is_admin = str(user_id) == ADMIN_ID
         
         if not is_admin and not is_user_member(user_id):
             channel_name = CHANNEL_ID.replace('@', '')
             keyboard = {
                 "inline_keyboard": [
-                    [{"text": f"✅ {MESSAGES[lang]['welcome'].splitlines()[0]}", "url": f"https://t.me/{channel_name}"}]
+                    [{"text": MESSAGES[lang]["join_button_text"], "url": f"https://t.me/{channel_name}"}]
                 ]
             }
             send_telegram_message(chat_id, MESSAGES[lang]["force_join"], reply_markup=keyboard)
@@ -227,7 +233,7 @@ def webhook():
 
         # --- Command Handling ---
         if command == '/start':
-            send_telegram_message(chat_id, MESSAGES[lang]["welcome"])
+            send_telegram_message(chat_id, MESSAGES[lang]["welcome"].format(username=user_name))
 
         elif command == '/language':
             keyboard = {
@@ -245,7 +251,17 @@ def webhook():
             send_telegram_message(chat_id, MESSAGES[lang]["language_prompt"], reply_markup=keyboard)
         
         elif command == '/support':
-            send_telegram_message(chat_id, MESSAGES[lang]["support_message"])
+            # *** አዲስ: ወደ አድሚኑ የሚወስድ ቁልፍ መላክ ***
+            if ADMIN_ID:
+                keyboard = {
+                    "inline_keyboard": [
+                        [{"text": MESSAGES[lang]["support_button"], "url": f"tg://user?id={ADMIN_ID}"}]
+                    ]
+                }
+                send_telegram_message(chat_id, MESSAGES[lang]["support_message"], reply_markup=keyboard)
+            else:
+                send_telegram_message(chat_id, "Support contact is not configured.")
+
 
         elif command == '/surah': handle_surah(chat_id, args, lang)
         elif command == '/juz': handle_juz(chat_id, args, lang)
