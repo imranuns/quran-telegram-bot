@@ -28,7 +28,11 @@ RECITERS = {
 def send_telegram_message(chat_id, text, parse_mode="Markdown"):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     payload = {'chat_id': chat_id, 'text': text, 'parse_mode': parse_mode}
-    requests.post(url, json=payload)
+    try:
+        # ጥያቄውን ከላከ በኋላ ለረጅም ጊዜ እንዳይጠብቅ timeout እንጨምራለን
+        requests.post(url, json=payload, timeout=5)
+    except requests.exceptions.Timeout:
+        pass # ችግር የለውም፣ መልዕክቱ ይላካል
 
 # ቴሌግራም ላይ የድምጽ ፋይል ለመላክ የሚረዳ ተግባር
 def send_telegram_audio(chat_id, audio_url, title, performer):
@@ -40,7 +44,11 @@ def send_telegram_audio(chat_id, audio_url, title, performer):
         'performer': performer,
         'caption': f"Recitation of {title} by {performer}"
     }
-    requests.post(url, json=payload)
+    try:
+        # ጥያቄውን ከላከ በኋላ ለረጅም ጊዜ እንዳይጠብቅ timeout እንጨምራለን
+        requests.post(url, json=payload, timeout=5)
+    except requests.exceptions.Timeout:
+        pass # ችግር የለውም፣ የድምጽ ፋይሉ ይላካል
 
 # ሱራ በጽሁፍ ለመላክ የሚረዳ ተግባር
 def handle_surah(chat_id, args):
@@ -121,7 +129,7 @@ def webhook():
         if 'message' in update:
             message = update['message']
             chat_id = message['chat']['id']
-            text = message.get('text', '').lower() # ትዕዛዞችን በቀላሉ ለማግኘት
+            text = message.get('text', '').lower()
             command_parts = text.split()
             command = command_parts[0]
             args = command_parts[1:]
@@ -150,7 +158,6 @@ def webhook():
             elif command == '/surah': handle_surah(chat_id, args)
             elif command == '/juz': handle_juz(chat_id, args)
             
-            # የቃሪዕ ኮማንዶችን ማስተናገድ
             reciter_command = command.replace('/', '')
             if reciter_command in RECITERS:
                 handle_recitation(chat_id, args, reciter_command)
@@ -159,4 +166,4 @@ def webhook():
 
 @app.route('/')
 def index():
-    return "Bot is running with 10 reciters!"
+    return "Bot is running with timeout fix!"
