@@ -10,11 +10,11 @@ app = Flask(__name__)
 TOKEN = os.environ.get('TELEGRAM_TOKEN')
 QURAN_API_BASE_URL = 'http://api.alquran.cloud/v1'
 
-# *** የተስተካከለው የቃሪዎች ዝርዝር ***
+# *** አዲሱ እና የተስተካከለው የቃሪዎች ዝርዝር (ከ everyayah.com) ***
 RECITERS = {
-    'abdulbasit': {'name': 'Abdul Basit Abdus Samad', 'identifier': 'abdul_basit_murattal'},
-    'yasser': {'name': 'Yasser Al-Dosari', 'identifier': 'yasser_ad-dussary'},
-    'maher': {'name': 'Maher Al-Muaiqly', 'identifier': 'maher_muaiqly'}
+    'abdulbasit': {'name': 'Abdul Basit Abdus Samad', 'identifier': 'Abdul_Basit_Murattal_64kbps'},
+    'yasser': {'name': 'Yasser Al-Dosari', 'identifier': 'Yasser_Ad-Dussary_128kbps'},
+    'maher': {'name': 'Maher Al-Muaiqly', 'identifier': 'Maher_AlMuaiqly_64kbps'}
 }
 
 # ቴሌግራም ላይ መልዕክት ለመላክ የሚረዳ ተግባር (function)
@@ -87,7 +87,8 @@ def handle_recitation(chat_id, args, reciter_key):
         surah_name_english = surah_data['englishName']
         
         padded_surah_number = str(surah_number).zfill(3)
-        full_audio_url = f"https://download.quranicaudio.com/quran/{reciter_identifier}/{padded_surah_number}.mp3"
+        # *** አዲሱ እና የተስተካከለው የድምጽ ፋይል አድራሻ ***
+        full_audio_url = f"https://everyayah.com/data/{reciter_identifier}/{padded_surah_number}.mp3"
         
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -128,10 +129,9 @@ def webhook():
             args = command_parts[1:]
 
             if command == '/start':
-                # *** የተስተካከለው የ /start መልዕክት ***
                 welcome_message = (
                     "Assalamu 'alaikum,\n\n"
-                    "ወደ ቁርአን ቦት በደህና መጡ!\n\n"
+                    "ወደ ቁርአን ቦት በደህና መጡ! (ችግሩ ተስተካክሏል)\n\n"
                     "📖 *ለጽሁፍ:*\n"
                     "`/surah <ቁጥር>`\n"
                     "`/juz <ቁጥር>`\n\n"
@@ -153,4 +153,4 @@ def webhook():
 
 @app.route('/')
 def index():
-    return "Bot is running with updated reciter list!"
+    return "Bot is running with new audio source (everyayah.com)!"
