@@ -10,11 +10,11 @@ app = Flask(__name__)
 TOKEN = os.environ.get('TELEGRAM_TOKEN')
 QURAN_API_BASE_URL = 'http://api.alquran.cloud/v1'
 
-# *** የተስተካከለው የቃሪዎች ዝርዝር ***
+# የተስተካከለው የቃሪዎች ዝርዝር
 RECITERS = {
     'abdulbasit': {'name': 'Abdul Basit Abdus Samad', 'identifier': 'abdul_basit_murattal'},
-    'minshawi': {'name': 'Muhammad Siddiq Al-Minshawi', 'identifier': 'minshawi_murattal'}, # FIXED
-    'mishary': {'name': 'Mishary Rashid Alafasy', 'identifier': 'alafasy'} # Correct identifier
+    'minshawi': {'name': 'Muhammad Siddiq Al-Minshawi', 'identifier': 'minshawi_murattal'},
+    'mishary': {'name': 'Mishary Rashid Alafasy', 'identifier': 'alafasy'}
 }
 
 # ቴሌግራም ላይ መልዕክት ለመላክ የሚረዳ ተግባር (function)
@@ -67,7 +67,7 @@ def handle_juz(chat_id, args):
     except Exception:
         send_telegram_message(chat_id, "ይቅርታ፣ ጁዙን ማግኘት አልቻልኩም።")
 
-# የተሻሻለው የድምጽ መላኪያ ተግባር (ሊንኩን ከመላኩ በፊት ያረጋግጣል)
+# *** የመጨረሻው የተሻሻለ የድምጽ መላኪያ ተግባር ***
 def handle_recitation(chat_id, args, reciter_key):
     full_audio_url = "" # Define url variable to be accessible in except block
     try:
@@ -89,10 +89,13 @@ def handle_recitation(chat_id, args, reciter_key):
         padded_surah_number = str(surah_number).zfill(3)
         full_audio_url = f"https://download.quranicaudio.com/quran/{reciter_identifier}/{padded_surah_number}.mp3"
         
-        # ሊንኩን ከመላካችን በፊት መስራቱን እናረጋግጣለን
-        response = requests.head(full_audio_url, timeout=10)
+        # *** አዲሱ ማስተካከያ፡ ቦቱ እንደ ብራውዘር እንዲመስል ማድረግ ***
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        response = requests.head(full_audio_url, headers=headers, timeout=15)
+        
         if response.status_code != 200:
-            # ሊንኩ የማይሰራ ከሆነ ስህተት እንፈጥራለን
             raise Exception(f"File not found, status code: {response.status_code}")
 
         # ሊንኩ የሚሰራ ከሆነ እንልካለን
@@ -152,4 +155,4 @@ def webhook():
 
 @app.route('/')
 def index():
-    return "Bot is running with FINAL reciter fix!"
+    return "Bot is running with FINAL browser fix!"
