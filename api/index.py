@@ -10,18 +10,11 @@ app = Flask(__name__)
 TOKEN = os.environ.get('TELEGRAM_TOKEN')
 QURAN_API_BASE_URL = 'http://api.alquran.cloud/v1'
 
-# የቃሪዎችን ዝርዝር እና የድምጽ ፋይል መገኛቸውን እናስቀምጣለን
+# የቃሪዎችን ዝርዝር ወደ 3 ቀይረናል
 RECITERS = {
     'abdulbasit': {'name': 'Abdul Basit Abdus Samad', 'identifier': 'abdul_basit_murattal'},
-    'hussary': {'name': 'Mahmoud Khalil Al-Hussary', 'identifier': 'husary'},
     'minshawi': {'name': 'Muhammad Siddiq Al-Minshawi', 'identifier': 'minshawi'},
-    'mishary': {'name': 'Mishary Rashid Alafasy', 'identifier': 'mishaari_raashid_al_afasy'},
-    'sudais': {'name': 'Abdul Rahman Al-Sudais', 'identifier': 'abdurrahmaan_as-sudais'},
-    'maher': {'name': 'Maher Al-Muaiqly', 'identifier': 'maher_muaiqly'},
-    'ghamdi': {'name': 'Saad Al-Ghamdi', 'identifier': 'saad_al-ghamdi'},
-    'shuraim': {'name': 'Saud Al-Shuraim', 'identifier': 'saood_ash-shuraym'},
-    'yasser': {'name': 'Yasser Al-Dosari', 'identifier': 'yasser_ad-dussary'},
-    'ajmi': {'name': 'Ahmed Al-Ajmi', 'identifier': 'ahmed_ibn_ali_al_ajamy'}
+    'mishary': {'name': 'Mishary Rashid Alafasy', 'identifier': 'mishaari_raashid_al_afasy'}
 }
 
 # ቴሌግራም ላይ መልዕክት ለመላክ የሚረዳ ተግባር (function)
@@ -29,26 +22,9 @@ def send_telegram_message(chat_id, text, parse_mode="Markdown"):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     payload = {'chat_id': chat_id, 'text': text, 'parse_mode': parse_mode}
     try:
-        # ጥያቄውን ከላከ በኋላ ለረጅም ጊዜ እንዳይጠብቅ timeout እንጨምራለን
         requests.post(url, json=payload, timeout=5)
     except requests.exceptions.Timeout:
-        pass # ችግር የለውም፣ መልዕክቱ ይላካል
-
-# ቴሌግራም ላይ የድምጽ ፋይል ለመላክ የሚረዳ ተግባር
-def send_telegram_audio(chat_id, audio_url, title, performer):
-    url = f"https://api.telegram.org/bot{TOKEN}/sendAudio"
-    payload = {
-        'chat_id': chat_id,
-        'audio': audio_url,
-        'title': title,
-        'performer': performer,
-        'caption': f"Recitation of {title} by {performer}"
-    }
-    try:
-        # ጥያቄውን ከላከ በኋላ ለረጅም ጊዜ እንዳይጠብቅ timeout እንጨምራለን
-        requests.post(url, json=payload, timeout=5)
-    except requests.exceptions.Timeout:
-        pass # ችግር የለውም፣ የድምጽ ፋይሉ ይላካል
+        pass
 
 # ሱራ በጽሁፍ ለመላክ የሚረዳ ተግባር
 def handle_surah(chat_id, args):
@@ -91,7 +67,7 @@ def handle_juz(chat_id, args):
     except Exception:
         send_telegram_message(chat_id, "ይቅርታ፣ ጁዙን ማግኘት አልቻልኩም።")
 
-# ለሁሉም ቃሪዎች የሚያገለግል አንድ ወጥ ተግባር
+# *** የተስተካከለው የድምጽ መላኪያ ተግባር (ሊንክ በመላክ) ***
 def handle_recitation(chat_id, args, reciter_key):
     try:
         if not args:
@@ -109,17 +85,21 @@ def handle_recitation(chat_id, args, reciter_key):
         surah_data = surah_info_response.json()['data']
         surah_name_english = surah_data['englishName']
         
-        send_telegram_message(chat_id, f"የ *{surah_name_english}* ሙሉ የድምጽ ፋይል በ *{reciter_name}* በማዘጋጀት ላይ ነው... እባክዎ ትንሽ ይጠብቁ።")
-
         padded_surah_number = str(surah_number).zfill(3)
         full_audio_url = f"https://download.quranicaudio.com/quran/{reciter_identifier}/{padded_surah_number}.mp3"
         
-        send_telegram_audio(chat_id=chat_id, audio_url=full_audio_url, title=f"Surah {surah_name_english}", performer=reciter_name)
+        # ፋይሉን ከመላክ ይልቅ ቀጥታ የማውረጃ ሊንክ እንልካለን
+        message_text = (
+            f"🔊 *Surah {surah_name_english}* by *{reciter_name}*\n\n"
+            f"🔗 [Download / Play Audio Here]({full_audio_url})\n\n"
+            f"ከላይ ያለውን ሰማያዊ ሊንክ በመጫን ድምጹን በቀጥታ ማዳመጥ ወይም ማውረድ ይችላሉ።"
+        )
+        send_telegram_message(chat_id, message_text)
 
     except (IndexError, ValueError):
         send_telegram_message(chat_id, f"እባክዎ ትክክለኛ የሱራ ቁጥር ያስገቡ (1-114)።\nአጠቃቀም: `/{reciter_key} 2`")
     except Exception as e:
-        send_telegram_message(chat_id, "ይቅርታ፣ የድምጽ ፋይሉን ማግኘት አልቻልኩም። እባክዎ እንደገና ይሞክሩ።")
+        send_telegram_message(chat_id, "ይቅርታ፣ የድምጽ ፋይሉን ሊንክ ማግኘት አልቻልኩም። እባክዎ እንደገና ይሞክሩ።")
 
 # ዋናው መግቢያ (Webhook)
 @app.route('/', methods=['POST'])
@@ -135,23 +115,17 @@ def webhook():
             args = command_parts[1:]
 
             if command == '/start':
+                # የ/start መልዕክቱን አስተካክለናል
                 welcome_message = (
                     "Assalamu 'alaikum,\n\n"
-                    "ወደ ቁርአን ቦት በደህና መጡ! (10 ቃሪዎች ተጨምረዋል)\n\n"
+                    "ወደ ቁርአን ቦት በደህና መጡ! (3 ቃሪዎች)\n\n"
                     "📖 *ለጽሁፍ:*\n"
                     "`/surah <ቁጥር>`\n"
                     "`/juz <ቁጥር>`\n\n"
-                    "🔊 *ለድምጽ (ሙሉ ሱራ):*\n"
+                    "🔊 *ለድምጽ (ሙሉ ሱራ ሊንክ):*\n"
                     "`/abdulbasit <ቁጥር>`\n"
-                    "`/hussary <ቁጥር>`\n"
                     "`/minshawi <ቁጥር>`\n"
-                    "`/mishary <ቁጥር>`\n"
-                    "`/sudais <ቁጥር>`\n"
-                    "`/maher <ቁጥር>`\n"
-                    "`/ghamdi <ቁጥር>`\n"
-                    "`/shuraim <ቁጥር>`\n"
-                    "`/yasser <ቁጥር>`\n"
-                    "`/ajmi <ቁጥር>`"
+                    "`/mishary <ቁጥር>`"
                 )
                 send_telegram_message(chat_id, welcome_message)
             
@@ -166,4 +140,4 @@ def webhook():
 
 @app.route('/')
 def index():
-    return "Bot is running with timeout fix!"
+    return "Bot is running with 3 reciters and link fix!"
