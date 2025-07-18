@@ -10,11 +10,11 @@ app = Flask(__name__)
 TOKEN = os.environ.get('TELEGRAM_TOKEN')
 QURAN_API_BASE_URL = 'http://api.alquran.cloud/v1'
 
-# የቃሪዎችን ዝርዝር እና የተስተካከለውን የሚሻሪን መገኛ አካተናል
+# *** የተስተካከለው የቃሪዎች ዝርዝር ***
 RECITERS = {
     'abdulbasit': {'name': 'Abdul Basit Abdus Samad', 'identifier': 'abdul_basit_murattal'},
-    'minshawi': {'name': 'Muhammad Siddiq Al-Minshawi', 'identifier': 'minshawi'},
-    'mishary': {'name': 'Mishary Rashid Alafasy', 'identifier': 'alafasy'}
+    'minshawi': {'name': 'Muhammad Siddiq Al-Minshawi', 'identifier': 'minshawi_murattal'}, # FIXED
+    'mishary': {'name': 'Mishary Rashid Alafasy', 'identifier': 'alafasy'} # Correct identifier
 }
 
 # ቴሌግራም ላይ መልዕክት ለመላክ የሚረዳ ተግባር (function)
@@ -67,7 +67,7 @@ def handle_juz(chat_id, args):
     except Exception:
         send_telegram_message(chat_id, "ይቅርታ፣ ጁዙን ማግኘት አልቻልኩም።")
 
-# *** የተሻሻለው የድምጽ መላኪያ ተግባር (ሊንኩን ከመላኩ በፊት ያረጋግጣል) ***
+# የተሻሻለው የድምጽ መላኪያ ተግባር (ሊንኩን ከመላኩ በፊት ያረጋግጣል)
 def handle_recitation(chat_id, args, reciter_key):
     full_audio_url = "" # Define url variable to be accessible in except block
     try:
@@ -152,4 +152,4 @@ def webhook():
 
 @app.route('/')
 def index():
-    return "Bot is running with link verification!"
+    return "Bot is running with FINAL reciter fix!"
