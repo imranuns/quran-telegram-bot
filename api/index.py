@@ -11,9 +11,7 @@ app = Flask(__name__)
 TOKEN = os.environ.get('TELEGRAM_TOKEN')
 ADMIN_ID = os.environ.get('ADMIN_ID')
 CHANNEL_ID = os.environ.get('CHANNEL_ID')
-# *** አዲስ: ከ JSONBin.io ያገኙትን Master Key እዚህ ያስገቡ (Vercel ላይ) ***
 JSONBIN_API_KEY = os.environ.get('JSONBIN_API_KEY')
-# *** አዲስ: ለዳታቤዝ የምንጠቀምበት የ Bin ID (በመጀመሪያው ሩጫ ይፈጠራል) ***
 JSONBIN_BIN_ID = os.environ.get('JSONBIN_BIN_ID') 
 
 QURAN_API_BASE_URL = 'http://api.alquran.cloud/v1'
@@ -55,25 +53,23 @@ MESSAGES = {
         "audio_link_message": "🔗 [Download / Play Audio Here]({audio_url})\n\nYou can listen or download the audio by clicking the blue link above.",
         "error_fetching": "Sorry, I could not get the audio link.\n\n**Reason:** The audio file was not found on the server (404 Error).\n**Attempted Link:** `{full_audio_url}`"
     }
-    # (For brevity, Arabic and Turkish translations are omitted but would follow the same structure)
 }
 
 # --- Database Functions (JSONBin.io) ---
 def get_db():
-    headers = {'X-Master-Key': JSONBIN_API_KEY}
+    if not JSONBIN_BIN_ID or not JSONBIN_API_KEY: return {'users': []}
+    headers = {'X-Master-Key': JSONBIN_API_KEY, 'X-Bin-Meta': 'false'}
     try:
-        req = requests.get(f'https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}/latest', headers=headers)
+        req = requests.get(f'https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}', headers=headers)
         req.raise_for_status()
-        return req.json()['record']
+        return req.json()
     except Exception as e:
         print(f"Error getting DB: {e}")
-        return {'users': []} # Return empty structure on error
+        return {'users': []}
 
 def update_db(data):
-    headers = {
-        'Content-Type': 'application/json',
-        'X-Master-Key': JSONBIN_API_KEY
-    }
+    if not JSONBIN_BIN_ID or not JSONBIN_API_KEY: return
+    headers = {'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY}
     try:
         req = requests.put(f'https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}', json=data, headers=headers)
         req.raise_for_status()
@@ -81,11 +77,11 @@ def update_db(data):
         print(f"Error updating DB: {e}")
 
 def add_user_to_db(user_id):
-    if not JSONBIN_BIN_ID or not JSONBIN_API_KEY:
-        return
     db_data = get_db()
-    if user_id not in db_data.get('users', []):
-        db_data['users'].append(user_id)
+    users = db_data.get('users', [])
+    if user_id not in users:
+        users.append(user_id)
+        db_data['users'] = users
         update_db(db_data)
 
 # ቴሌግራም ላይ መልዕክት ለመላክ የሚረዳ ተግባር
@@ -102,10 +98,8 @@ def send_telegram_message(chat_id, text, parse_mode="Markdown", reply_markup=Non
 def get_user_lang(chat_id):
     return user_languages.get(chat_id, 'am')
 
-# ተጠቃሚው ቻናሉን መቀላቀሉን የሚያረጋግጥ ተግባር
 def is_user_member(user_id):
-    if not CHANNEL_ID:
-        return True
+    if not CHANNEL_ID: return True
     try:
         url = f"https://api.telegram.org/bot{TOKEN}/getChatMember"
         payload = {'chat_id': CHANNEL_ID, 'user_id': user_id}
@@ -119,16 +113,71 @@ def is_user_member(user_id):
         return False
     return False
 
-# ሱራ እና ጁዝ ተግባራት (ከበፊቱ ጋር ተመሳሳይ)
 def handle_surah(chat_id, args, lang):
-    # (Code from previous version)
-    pass
+    try:
+        surah_number = int(args[0])
+        if not 1 <= surah_number <= 114: raise ValueError
+        response = requests.get(f"{QURAN_API_BASE_URL}/surah/{surah_number}")
+        data = response.json()['data']
+        surah_name = data['englishName']
+        ayahs = data['ayahs']
+        message = f"🕋 *Surah {surah_number}: {surah_name}*\n\n"
+        for ayah in ayahs:
+            message += f"{ayah['numberInSurah']}. {ayah['text']}\n"
+        for i in range(0, len(message), 4096):
+            send_telegram_message(chat_id, message[i:i+4096])
+    except (IndexError, ValueError):
+        send_telegram_message(chat_id, MESSAGES[lang]["surah_prompt"])
+    except Exception:
+        send_telegram_message(chat_id, MESSAGES[lang]["error_fetching"].format(full_audio_url="N/A"))
+
 def handle_juz(chat_id, args, lang):
-    # (Code from previous version)
-    pass
+    try:
+        juz_number = int(args[0])
+        if not 1 <= juz_number <= 30: raise ValueError
+        response = requests.get(f"{QURAN_API_BASE_URL}/juz/{juz_number}")
+        data = response.json()['data']
+        ayahs = data['ayahs']
+        message = f"📗 *Juz' {juz_number}*\n\n"
+        current_surah_name = ""
+        for ayah in ayahs:
+            if ayah['surah']['name'] != current_surah_name:
+                current_surah_name = ayah['surah']['name']
+                message += f"\n--- {current_surah_name} ---\n"
+            message += f"{ayah['numberInSurah']}. {ayah['text']}\n"
+        for i in range(0, len(message), 4096):
+            send_telegram_message(chat_id, message[i:i+4096])
+    except (IndexError, ValueError):
+        send_telegram_message(chat_id, MESSAGES[lang]["juz_prompt"])
+    except Exception:
+        send_telegram_message(chat_id, MESSAGES[lang]["error_fetching"].format(full_audio_url="N/A"))
+
 def handle_recitation(chat_id, args, lang, reciter_key):
-    # (Code from previous version)
-    pass
+    full_audio_url = ""
+    try:
+        if not args:
+            send_telegram_message(chat_id, MESSAGES[lang]["surah_prompt"])
+            return
+        surah_number = int(args[0])
+        if not 1 <= surah_number <= 114: raise ValueError
+        reciter_info = RECITERS[reciter_key]
+        reciter_name = reciter_info['name']
+        reciter_identifier = reciter_info['identifier']
+        surah_info_response = requests.get(f"{QURAN_API_BASE_URL}/surah/{surah_number}")
+        surah_data = surah_info_response.json()['data']
+        surah_name_english = surah_data['englishName']
+        padded_surah_number = str(surah_number).zfill(3)
+        full_audio_url = f"https://download.quranicaudio.com/quran/{reciter_identifier}/{padded_surah_number}.mp3"
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+        response = requests.get(full_audio_url, headers=headers, stream=True, timeout=15)
+        if response.status_code != 200:
+            raise Exception(f"File not found, status code: {response.status_code}")
+        message_text = MESSAGES[lang]["audio_link_message"].format(audio_url=full_audio_url)
+        send_telegram_message(chat_id, message_text)
+    except (IndexError, ValueError):
+        send_telegram_message(chat_id, MESSAGES[lang]["surah_prompt"])
+    except Exception as e:
+        send_telegram_message(chat_id, MESSAGES[lang]["error_fetching"].format(full_audio_url=full_audio_url))
 
 # --- Admin Commands ---
 def handle_status(chat_id):
@@ -140,27 +189,33 @@ def handle_broadcast(admin_id, message_text):
     db_data = get_db()
     users = db_data.get('users', [])
     sent_count = 0
+    failed_count = 0
     for user_id in users:
         try:
             send_telegram_message(user_id, message_text)
             sent_count += 1
-            time.sleep(0.1) # Avoid hitting rate limits
+            time.sleep(0.1)
         except Exception as e:
+            failed_count += 1
             print(f"Could not broadcast to {user_id}: {e}")
-    send_telegram_message(admin_id, f"✅ Broadcast sent to *{sent_count}* out of *{len(users)}* users.")
-
+    send_telegram_message(admin_id, f"✅ Broadcast sent to *{sent_count}* users.\n❌ Failed to send to *{failed_count}* users.")
 
 # ዋናው መግቢያ (Webhook)
 @app.route('/', methods=['POST'])
 def webhook():
     update = request.get_json()
     
-    # Callback Query
     if 'callback_query' in update:
-        # (Code from previous version)
-        pass
+        callback_query = update['callback_query']
+        data = callback_query['data']
+        chat_id = callback_query['message']['chat']['id']
+        if data.startswith('set_lang_'):
+            lang_code = data.split('_')[-1]
+            user_languages[chat_id] = lang_code
+            lang = get_user_lang(chat_id)
+            send_telegram_message(chat_id, MESSAGES[lang]["language_selected"])
+        return 'ok'
 
-    # Normal Message
     if 'message' in update:
         message = update['message']
         user_id = message['from']['id']
@@ -172,51 +227,43 @@ def webhook():
         args = command_parts[1:]
         lang = get_user_lang(chat_id)
 
-        # Add user to DB
         add_user_to_db(user_id)
 
-        # የቻናል አባልነት ማረጋገጫ
         is_admin = str(user_id) == ADMIN_ID
         
         if not is_admin and not is_user_member(user_id):
-            # (Code from previous version)
+            channel_name = CHANNEL_ID.replace('@', '') if CHANNEL_ID else ''
+            keyboard = {"inline_keyboard": [[{"text": MESSAGES[lang]["join_button_text"], "url": f"https://t.me/{channel_name}"}]]}
+            send_telegram_message(chat_id, MESSAGES[lang]["force_join"], reply_markup=keyboard)
             return 'ok'
 
-        # --- Command Handling ---
         if command == '/start':
             send_telegram_message(chat_id, MESSAGES[lang]["welcome"].format(username=user_name))
-
         elif command == '/language':
-            # (Code from previous version)
-            pass
-        
+            keyboard = {"inline_keyboard": [[{"text": "አማርኛ", "callback_data": "set_lang_am"}, {"text": "English", "callback_data": "set_lang_en"}],[{"text": "العربية", "callback_data": "set_lang_ar"}, {"text": "Türkçe", "callback_data": "set_lang_tr"}]]}
+            send_telegram_message(chat_id, MESSAGES[lang]["language_prompt"], reply_markup=keyboard)
         elif command == '/support':
             if not args:
                 send_telegram_message(chat_id, MESSAGES[lang]["support_prompt"])
             else:
                 support_message = " ".join(args)
                 forward_message = f"🆘 *New Support Message*\n\n*From:* {user_name} (ID: `{user_id}`)\n\n*Message:* {support_message}"
-                send_telegram_message(ADMIN_ID, forward_message)
+                if ADMIN_ID: send_telegram_message(ADMIN_ID, forward_message)
                 send_telegram_message(chat_id, MESSAGES[lang]["support_sent"])
-
-        # --- Admin-Only Commands ---
         elif is_admin and command == '/status':
             handle_status(chat_id)
-
         elif is_admin and command == '/broadcast':
             if not args:
                 send_telegram_message(chat_id, "Please provide a message to broadcast.\nUsage: `/broadcast Hello everyone!`")
             else:
                 broadcast_text = " ".join(args)
                 handle_broadcast(chat_id, broadcast_text)
-
         elif command == '/surah': handle_surah(chat_id, args, lang)
         elif command == '/juz': handle_juz(chat_id, args, lang)
-        
-        reciter_command = command.replace('/', '')
-        if reciter_command in RECITERS:
-            handle_recitation(chat_id, args, lang, reciter_command)
-
+        else:
+            reciter_command = command.replace('/', '')
+            if reciter_command in RECITERS:
+                handle_recitation(chat_id, args, lang, reciter_command)
     return 'ok'
 
 @app.route('/')
