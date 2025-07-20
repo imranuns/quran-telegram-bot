@@ -22,7 +22,6 @@ RECITERS = {
 
 # --- Caching and Session Management ---
 user_languages = {}
-# *** አዲስ: የቻናል አባልነትን ለጊዜው ለማስታወስ ***
 user_membership_cache = {}
 
 
@@ -37,6 +36,8 @@ MESSAGES = {
         "join_button_text": "✅ please first join channel",
         "surah_prompt": "እባкዎ ትክክለኛ የሱራ ቁጥር ያስገቡ (1-114)።\nአጠቃቀም: `/surah 2`",
         "juz_prompt": "እባкዎ ትክክለኛ የጁዝ ቁጥር ያስገቡ (1-30)።\nአጠቃቀም: `/juz 15`",
+        # *** የተስተካከለው መልዕክት ***
+        "reciter_prompt": "እባкዎ ከቃሪኡ ስም ቀጥሎ የሱራውን ቁጥር ያስገቡ (1-114)።\nአጠቃቀም: `/{reciter_key} 2`",
         "audio_link_message": "🔗 [Download / Play Audio Here]({audio_url})\n\nከላይ ያለውን ሰማያዊ ሊንክ በመጫን ድምጹን በቀጥታ ማዳመጥ ወይም ማውረድ ይችላሉ።",
         "error_fetching": "ይቅርታ፣ የድምጽ ፋይሉን ሊንክ ማግኘት አልቻልኩም።\n\n**ምክንያት:** የድምጽ ፋይሉ በድረ-ገጹ ላይ አልተገኘም (404 Error)።\n**የተሞከረው ሊንክ:** `{full_audio_url}`"
     },
@@ -50,6 +51,8 @@ MESSAGES = {
         "join_button_text": "✅ please first join channel",
         "surah_prompt": "Please provide a valid Surah number (1-114).\nUsage: `/surah 2`",
         "juz_prompt": "Please provide a valid Juz' number (1-30).\nUsage: `/juz 15`",
+        # *** Corrected Message ***
+        "reciter_prompt": "Please enter the Surah number after the reciter's name (1-114).\nUsage: `/{reciter_key} 2`",
         "audio_link_message": "🔗 [Download / Play Audio Here]({audio_url})\n\nYou can listen or download the audio by clicking the blue link above.",
         "error_fetching": "Sorry, I could not get the audio link.\n\n**Reason:** The audio file was not found on the server (404 Error).\n**Attempted Link:** `{full_audio_url}`"
     },
@@ -63,6 +66,7 @@ MESSAGES = {
         "join_button_text": "✅ please first join channel",
         "surah_prompt": "الرجاء إدخال رقم سورة صحيح (1-114).\nمثال: `/surah 2`",
         "juz_prompt": "الرجاء إدخال رقم جزء صحيح (1-30).\nمثال: `/juz 15`",
+        "reciter_prompt": "الرجاء إدخال رقم السورة بعد اسم القارئ (1-114).\nمثال: `/{reciter_key} 2`",
         "audio_link_message": "🔗 [تحميل / تشغيل الصوت هنا]({audio_url})\n\nيمكنك الاستماع أو تحميل الصوت بالضغط على الرابط الأزرق أعلاه.",
         "error_fetching": "عذراً، لم أتمكن من جلب رابط الملف الصوتي.\n\n**السبب:** لم يتم العثور على الملف الصوتي على الخادم (خطأ 404).\n**الرابط الذي تمت تجربته:** `{full_audio_url}`"
     },
@@ -76,6 +80,7 @@ MESSAGES = {
         "join_button_text": "✅ please first join channel",
         "surah_prompt": "Lütfen geçerli bir Sure numarası girin (1-114).\nKullanım: `/surah 2`",
         "juz_prompt": "Lütfen geçerli bir Cüz numarası girin (1-30).\nKullanım: `/juz 15`",
+        "reciter_prompt": "Lütfen okuyucunun adından sonra Sure numarasını girin (1-114).\nKullanım: `/{reciter_key} 2`",
         "audio_link_message": "🔗 [Sesi İndir / Oynat]({audio_url})\n\nYukarıdaki mavi bağlantıya tıklayarak sesi dinleyebilir veya indirebilirsiniz.",
         "error_fetching": "Üzgünüm, ses bağlantısını alamadım.\n\n**Neden:** Ses dosyası sunucuda bulunamadı (404 Hatası).\n**Denenen Bağlantı:** `{full_audio_url}`"
     }
@@ -122,23 +127,19 @@ def send_telegram_message(chat_id, text, parse_mode="Markdown", reply_markup=Non
 def get_user_lang(chat_id):
     return user_languages.get(chat_id, 'am')
 
-# *** የተሻሻለ የአባልነት ማረጋገጫ (ከ Cache ጋር) ***
 def is_user_member(user_id):
     if not CHANNEL_ID: return True
     
-    # መጀመሪያ ከ Cache ላይ እንፈትሻለን
     cached_status = user_membership_cache.get(user_id)
-    if cached_status and (time.time() - cached_status['timestamp'] < 300): # 5 minutes cache
+    if cached_status and (time.time() - cached_status['timestamp'] < 300):
         return cached_status['is_member']
 
-    # Cache ላይ ከሌለ ወይም ጊዜው ካለፈ፣ ከ Telegram እንጠይቃለን
     try:
         url = f"https://api.telegram.org/bot{TOKEN}/getChatMember"
         payload = {'chat_id': CHANNEL_ID, 'user_id': user_id}
         response = requests.get(url, params=payload)
         status = response.json()['result']['status']
         is_member = status in ['creator', 'administrator', 'member']
-        # ውጤቱን Cache ላይ እናስቀምጣለን
         user_membership_cache[user_id] = {'is_member': is_member, 'timestamp': time.time()}
         return is_member
     except Exception: 
@@ -176,6 +177,11 @@ def handle_juz(chat_id, args, lang):
 def handle_recitation(chat_id, args, lang, reciter_key):
     full_audio_url = ""
     try:
+        # *** የተስተካከለው ክፍል ***
+        if not args:
+            send_telegram_message(chat_id, MESSAGES[lang]["reciter_prompt"].format(reciter_key=reciter_key))
+            return
+            
         surah_number = int(args[0])
         reciter_info = RECITERS[reciter_key]
         reciter_name = reciter_info['name']
@@ -264,7 +270,6 @@ def webhook():
                 return 'ok'
 
             if command == '/start':
-                # *** የተሻሻለ: ተጠቃሚውን የሚመዘግበው /start ሲል ብቻ ነው ***
                 add_user_to_db(user_id)
                 send_telegram_message(chat_id, MESSAGES[lang]["welcome"].format(username=user_name))
             elif command == '/language':
@@ -295,4 +300,4 @@ def webhook():
 
 @app.route('/')
 def index():
-    return "Final Bot is running with performance optimizations!"
+    return "Final Bot is running with performance optimizations and message fixes!"
