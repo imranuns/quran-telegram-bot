@@ -3,6 +3,12 @@ import requests
 import json
 from flask import Flask, request
 import time
+import logging
+from datetime import datetime
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Flask መተግበሪያ መፍጠር
 app = Flask(__name__)
@@ -13,6 +19,12 @@ ADMIN_ID = os.environ.get('ADMIN_ID')
 CHANNEL_ID = os.environ.get('CHANNEL_ID')
 JSONBIN_API_KEY = os.environ.get('JSONBIN_API_KEY')
 JSONBIN_BIN_ID = os.environ.get('JSONBIN_BIN_ID') 
+
+# Debug environment variables (remove in production)
+logger.info(f"Environment check - TOKEN: {'✅' if TOKEN else '❌'}")
+logger.info(f"Environment check - ADMIN_ID: {'✅' if ADMIN_ID else '❌'}")
+logger.info(f"Environment check - JSONBIN_API_KEY: {'✅' if JSONBIN_API_KEY else '❌'}")
+logger.info(f"Environment check - JSONBIN_BIN_ID: {'✅' if JSONBIN_BIN_ID else '❌'}")
 
 QURAN_API_BASE_URL = 'http://api.alquran.cloud/v1'
 
@@ -35,7 +47,7 @@ MESSAGES = {
         "support_sent": "✅ መልዕክትዎ ለአድሚኑ ተልኳል።",
         "force_join": "🙏 ቦቱን ለመጠቀም እባክዎ መጀመሪያ ቻናላችንን ይቀላቀሉ።",
         "join_button_text": "✅ please first join channel",
-        "surah_prompt": "እባкዎ ትክክለኛ የሱራ ቁጥር ያስገቡ (1-114)።\nአጠቃቀም: `/surah 2`",
+        "surah_prompt": "እባкዎ ትክክለኛ የሱራ ቁጥር ያስገቡ (1-114)।\nአጠቃቀም: `/surah 2`",
         "juz_prompt": "እባкዎ ትክክለኛ የጁዝ ቁጥር ያስገቡ (1-30)።\nአጠቃቀም: `/juz 15`",
         "audio_link_message": "🔗 [Download / Play Audio Here]({audio_url})\n\nከላይ ያለውን ሰማያዊ ሊንክ በመጫን ድምጹን በቀጥታ ማዳመጥ ወይም ማውረድ ይችላሉ።",
         "error_fetching": "ይቅርታ፣ የድምጽ ፋይሉን ሊንክ ማግኘት አልቻልኩም።\n\n**ምክንያት:** የድምጽ ፋይሉ በድረ-ገጹ ላይ አልተገኘም (404 Error)።\n**የተሞከረው ሊንክ:** `{full_audio_url}`"
@@ -55,34 +67,134 @@ MESSAGES = {
     }
 }
 
-# --- Database Functions (JSONBin.io) ---
-def get_db():
-    if not JSONBIN_BIN_ID or not JSONBIN_API_KEY: return {'users': []}
-    headers = {'X-Master-Key': JSONBIN_API_KEY, 'X-Bin-Meta': 'false'}
+# --- Improved Database Functions (JSONBin.io) ---
+def test_jsonbin_connection():
+    """Test JSONBin.io connection and return status"""
+    if not JSONBIN_BIN_ID or not JSONBIN_API_KEY:
+        return False, "Missing API credentials"
+    
+    headers = {
+        'X-Master-Key': JSONBIN_API_KEY,
+        'X-Bin-Meta': 'false'
+    }
+    
     try:
-        req = requests.get(f'https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}', headers=headers)
-        req.raise_for_status()
-        return req.json()
+        response = requests.get(
+            f'https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}',
+            headers=headers,
+            timeout=10
+        )
+        logger.info(f"JSONBin response status: {response.status_code}")
+        logger.info(f"JSONBin response content: {response.text[:200]}...")
+        
+        if response.status_code == 200:
+            data = response.json()
+            return True, f"Connection successful. Current data: {data}"
+        else:
+            return False, f"HTTP {response.status_code}: {response.text}"
+            
     except Exception as e:
-        print(f"Error getting DB: {e}")
+        logger.error(f"JSONBin connection test failed: {e}")
+        return False, str(e)
+
+def get_db():
+    """Get database with improved error handling and logging"""
+    if not JSONBIN_BIN_ID or not JSONBIN_API_KEY:
+        logger.error("Missing JSONBin credentials")
+        return {'users': []}
+    
+    headers = {
+        'X-Master-Key': JSONBIN_API_KEY,
+        'X-Bin-Meta': 'false'
+    }
+    
+    try:
+        logger.info("Attempting to fetch data from JSONBin...")
+        response = requests.get(
+            f'https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}',
+            headers=headers,
+            timeout=10
+        )
+        
+        logger.info(f"JSONBin GET response: {response.status_code}")
+        response.raise_for_status()
+        
+        data = response.json()
+        logger.info(f"Successfully retrieved data: {data}")
+        
+        # Ensure the data has the expected structure
+        if 'users' not in data:
+            data = {'users': []}
+            logger.info("Initialized empty users list")
+            
+        return data
+        
+    except requests.exceptions.Timeout:
+        logger.error("JSONBin request timed out")
+        return {'users': []}
+    except requests.exceptions.RequestException as e:
+        logger.error(f"JSONBin request failed: {e}")
+        return {'users': []}
+    except Exception as e:
+        logger.error(f"Unexpected error getting DB: {e}")
         return {'users': []}
 
 def update_db(data):
-    if not JSONBIN_BIN_ID or not JSONBIN_API_KEY: return
-    headers = {'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY}
+    """Update database with improved error handling and logging"""
+    if not JSONBIN_BIN_ID or not JSONBIN_API_KEY:
+        logger.error("Missing JSONBin credentials for update")
+        return False
+    
+    headers = {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JSONBIN_API_KEY
+    }
+    
     try:
-        req = requests.put(f'https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}', json=data, headers=headers)
-        req.raise_for_status()
+        logger.info(f"Attempting to update JSONBin with data: {data}")
+        response = requests.put(
+            f'https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}',
+            json=data,
+            headers=headers,
+            timeout=10
+        )
+        
+        logger.info(f"JSONBin PUT response: {response.status_code}")
+        response.raise_for_status()
+        
+        logger.info("Successfully updated database")
+        return True
+        
+    except requests.exceptions.Timeout:
+        logger.error("JSONBin update request timed out")
+        return False
+    except requests.exceptions.RequestException as e:
+        logger.error(f"JSONBin update failed: {e}")
+        return False
     except Exception as e:
-        print(f"Error updating DB: {e}")
+        logger.error(f"Unexpected error updating DB: {e}")
+        return False
 
 def add_user_to_db(user_id):
-    db_data = get_db()
-    users = db_data.get('users', [])
-    if user_id not in users:
-        users.append(user_id)
-        db_data['users'] = users
-        update_db(db_data)
+    """Add user to database with improved logging"""
+    try:
+        logger.info(f"Adding user {user_id} to database...")
+        db_data = get_db()
+        users = db_data.get('users', [])
+        
+        if user_id not in users:
+            users.append(user_id)
+            db_data['users'] = users
+            success = update_db(db_data)
+            if success:
+                logger.info(f"Successfully added user {user_id}. Total users: {len(users)}")
+            else:
+                logger.error(f"Failed to add user {user_id} to database")
+        else:
+            logger.info(f"User {user_id} already exists in database")
+            
+    except Exception as e:
+        logger.error(f"Error in add_user_to_db: {e}")
 
 # ቴሌግራም ላይ መልዕክት ለመላክ የሚረዳ ተግባር
 def send_telegram_message(chat_id, text, parse_mode="Markdown", reply_markup=None):
@@ -91,9 +203,13 @@ def send_telegram_message(chat_id, text, parse_mode="Markdown", reply_markup=Non
     if reply_markup:
         payload['reply_markup'] = json.dumps(reply_markup)
     try:
-        requests.post(url, json=payload, timeout=5)
+        response = requests.post(url, json=payload, timeout=10)
+        if response.status_code != 200:
+            logger.error(f"Failed to send message: {response.status_code} - {response.text}")
     except requests.exceptions.Timeout:
-        pass
+        logger.error("Telegram message send timeout")
+    except Exception as e:
+        logger.error(f"Error sending telegram message: {e}")
 
 def get_user_lang(chat_id):
     return user_languages.get(chat_id, 'am')
@@ -103,13 +219,13 @@ def is_user_member(user_id):
     try:
         url = f"https://api.telegram.org/bot{TOKEN}/getChatMember"
         payload = {'chat_id': CHANNEL_ID, 'user_id': user_id}
-        response = requests.get(url, params=payload)
+        response = requests.get(url, params=payload, timeout=5)
         data = response.json()
         if data.get('ok'):
             status = data['result']['status']
             return status in ['creator', 'administrator', 'member']
     except Exception as e:
-        print(f"Error checking membership: {e}")
+        logger.error(f"Error checking membership: {e}")
         return False
     return False
 
@@ -179,26 +295,97 @@ def handle_recitation(chat_id, args, lang, reciter_key):
     except Exception as e:
         send_telegram_message(chat_id, MESSAGES[lang]["error_fetching"].format(full_audio_url=full_audio_url))
 
-# --- Admin Commands ---
+# --- Improved Admin Commands ---
 def handle_status(chat_id):
-    db_data = get_db()
-    user_count = len(db_data.get('users', []))
-    send_telegram_message(chat_id, f"📊 *Bot Status*\n\nTotal Users: *{user_count}*")
+    """Handle status command with detailed debugging info"""
+    try:
+        # Test connection first
+        is_connected, connection_info = test_jsonbin_connection()
+        
+        db_data = get_db()
+        user_count = len(db_data.get('users', []))
+        
+        status_message = f"📊 *Bot Status*\n\n"
+        status_message += f"Total Users: *{user_count}*\n\n"
+        status_message += f"🔗 JSONBin Connection: {'✅' if is_connected else '❌'}\n"
+        
+        if str(chat_id) == ADMIN_ID:
+            # Show detailed debug info to admin
+            status_message += f"\n*Debug Info:*\n"
+            status_message += f"API Key: {'✅' if JSONBIN_API_KEY else '❌'}\n"
+            status_message += f"Bin ID: {'✅' if JSONBIN_BIN_ID else '❌'}\n"
+            status_message += f"Connection: {connection_info[:200]}\n"
+        
+        send_telegram_message(chat_id, status_message)
+        
+    except Exception as e:
+        logger.error(f"Error in handle_status: {e}")
+        send_telegram_message(chat_id, f"❌ Error getting status: {str(e)}")
 
 def handle_broadcast(admin_id, message_text):
-    db_data = get_db()
-    users = db_data.get('users', [])
-    sent_count = 0
-    failed_count = 0
-    for user_id in users:
-        try:
-            send_telegram_message(user_id, message_text)
-            sent_count += 1
-            time.sleep(0.1)
-        except Exception as e:
-            failed_count += 1
-            print(f"Could not broadcast to {user_id}: {e}")
-    send_telegram_message(admin_id, f"✅ Broadcast sent to *{sent_count}* users.\n❌ Failed to send to *{failed_count}* users.")
+    """Handle broadcast with improved error reporting"""
+    try:
+        db_data = get_db()
+        users = db_data.get('users', [])
+        
+        if not users:
+            send_telegram_message(admin_id, "❌ No users found in database. Check your JSONBin connection.")
+            return
+        
+        sent_count = 0
+        failed_count = 0
+        
+        for user_id in users:
+            try:
+                send_telegram_message(user_id, message_text)
+                sent_count += 1
+                time.sleep(0.1)
+            except Exception as e:
+                failed_count += 1
+                logger.error(f"Could not broadcast to {user_id}: {e}")
+        
+        result_message = f"✅ Broadcast completed!\n\n"
+        result_message += f"📤 Sent to: *{sent_count}* users\n"
+        result_message += f"❌ Failed: *{failed_count}* users\n"
+        result_message += f"📊 Total in DB: *{len(users)}* users"
+        
+        send_telegram_message(admin_id, result_message)
+        
+    except Exception as e:
+        logger.error(f"Error in handle_broadcast: {e}")
+        send_telegram_message(admin_id, f"❌ Broadcast failed: {str(e)}")
+
+# Add debug command for admin
+def handle_debug(chat_id):
+    """Debug command to test database operations"""
+    if str(chat_id) != ADMIN_ID:
+        return
+    
+    try:
+        # Test connection
+        is_connected, connection_info = test_jsonbin_connection()
+        
+        debug_message = f"🔧 *Debug Information*\n\n"
+        debug_message += f"JSONBin Connection: {'✅' if is_connected else '❌'}\n"
+        debug_message += f"Connection Info: {connection_info[:300]}\n\n"
+        
+        # Test database operations
+        db_data = get_db()
+        debug_message += f"Current DB Data: {db_data}\n\n"
+        
+        # Test adding a user
+        test_user_id = 999999999  # Test user ID
+        add_user_to_db(test_user_id)
+        
+        # Check if it was added
+        updated_data = get_db()
+        debug_message += f"After test user addition: {updated_data}\n"
+        
+        send_telegram_message(chat_id, debug_message)
+        
+    except Exception as e:
+        logger.error(f"Error in debug command: {e}")
+        send_telegram_message(chat_id, f"❌ Debug error: {str(e)}")
 
 # ዋናው መግቢያ (Webhook)
 @app.route('/', methods=['POST'])
@@ -258,6 +445,8 @@ def webhook():
             else:
                 broadcast_text = " ".join(args)
                 handle_broadcast(chat_id, broadcast_text)
+        elif is_admin and command == '/debug':
+            handle_debug(chat_id)
         elif command == '/surah': handle_surah(chat_id, args, lang)
         elif command == '/juz': handle_juz(chat_id, args, lang)
         else:
@@ -269,3 +458,45 @@ def webhook():
 @app.route('/')
 def index():
     return "Bot is running with admin features!"
+
+@app.route('/test')
+def test():
+    """Test endpoint to verify deployment and database connectivity"""
+    try:
+        # Test environment variables
+        env_status = {
+            'TELEGRAM_TOKEN': '✅' if TOKEN else '❌',
+            'ADMIN_ID': '✅' if ADMIN_ID else '❌',
+            'JSONBIN_API_KEY': '✅' if JSONBIN_API_KEY else '❌',
+            'JSONBIN_BIN_ID': '✅' if JSONBIN_BIN_ID else '❌'
+        }
+        
+        # Test JSONBin connection
+        is_connected, connection_info = test_jsonbin_connection()
+        
+        # Test database read
+        db_data = get_db()
+        user_count = len(db_data.get('users', []))
+        
+        result = {
+            'status': 'OK',
+            'timestamp': datetime.now().isoformat(),
+            'environment_variables': env_status,
+            'jsonbin_connection': {
+                'connected': is_connected,
+                'info': connection_info
+            },
+            'database': {
+                'user_count': user_count,
+                'data': db_data
+            }
+        }
+        
+        return json.dumps(result, indent=2)
+        
+    except Exception as e:
+        return json.dumps({
+            'status': 'ERROR',
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }, indent=2)
