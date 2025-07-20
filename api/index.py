@@ -24,7 +24,7 @@ user_languages = {}
 
 MESSAGES = {
     'am': {
-        "welcome": "🕌 Assalamu Alaikum {username}\n\n📖 ወደ ቁርአን ቦት በደህና መጡ!\n\n✍️ ለጽሁፍ የቁርአን አንቀጾች:\n\n/surah <ቁጥር> — ሱራ ቁጥር አስገባ\n/juz <ቁጥር> — ጁዝ ቁጥር አስገባ\n\n🔊 ለድምጽ (ሙሉ ሱራ ኮርኖች):\n/abdulbasit <ቁጥር> 🎙️\n/yasser <ቁጥር> 🎧\n\n⚙️ ሌሎች ትዕዛዞች:\n� /language — ቋንቋ ለመቀየር\n🆘 /support <መልዕክት> — ለእርዳታ ለአድሚኑ ይላኩ",
+        "welcome": "🕌 Assalamu Alaikum {username}\n\n📖 ወደ ቁርአን ቦት በደህና መጡ!\n\n✍️ ለጽሁፍ የቁርአን አንቀጾች:\n\n/surah <ቁጥር> — ሱራ ቁጥር አስገባ\n/juz <ቁጥር> — ጁዝ ቁጥር አስገባ\n\n🔊 ለድምጽ (ሙሉ ሱራ ኮርኖች):\n/abdulbasit <ቁጥር> 🎙️\n/yasser <ቁጥር> 🎧\n\n⚙️ ሌሎች ትዕዛዞች:\n🌐 /language — ቋንቋ ለመቀየር\n🆘 /support <መልዕክት> — ለእርዳታ ለአድሚኑ ይላኩ",
         "language_prompt": "እባክዎ ቋንቋ ይምረጡ:",
         "language_selected": "✅ ቋንቋ ወደ አማርኛ ተቀይሯል።",
         "support_prompt": "እባክዎ ከ `/support` ትዕዛዝ በኋላ መልዕክትዎን ያስገቡ።\nምሳሌ: `/support ሰላም፣ እርዳታ እፈልጋለሁ`",
@@ -48,6 +48,32 @@ MESSAGES = {
         "juz_prompt": "Please provide a valid Juz' number (1-30).\nUsage: `/juz 15`",
         "audio_link_message": "🔗 [Download / Play Audio Here]({audio_url})\n\nYou can listen or download the audio by clicking the blue link above.",
         "error_fetching": "Sorry, I could not get the audio link.\n\n**Reason:** The audio file was not found on the server (404 Error).\n**Attempted Link:** `{full_audio_url}`"
+    },
+    'ar': {
+        "welcome": "🕌 السلام عليكم {username}\n\n📖 أهلاً بك في بوت القرآن!\n\n✍️ لآيات القرآن كنص:\n\n/surah <رقم> — أدخل رقم السورة\n/juz <رقم> — أدخل رقم الجزء\n\n🔊 للصوت (تلاوات السور كاملة):\n/abdulbasit <رقم> �️\n/yasser <رقم> 🎧\n\n⚙️ أوامر أخرى:\n🌐 /language — لتغيير اللغة\n🆘 /support <رسالة> — أرسل رسالة إلى المسؤول للمساعدة",
+        "language_prompt": "الرجاء اختيار اللغة:",
+        "language_selected": "✅ تم تغيير اللغة إلى العربية.",
+        "support_prompt": "الرجاء إدخال رسالتك بعد أمر `/support`.\nمثال: `/support مرحباً، أحتاج إلى مساعدة`",
+        "support_sent": "✅ تم إرسال رسالتك إلى المسؤول.",
+        "force_join": "🙏 لاستخدام البوت، يرجى الانضمام إلى قناتنا أولاً.",
+        "join_button_text": "✅ please first join channel",
+        "surah_prompt": "الرجاء إدخال رقم سورة صحيح (1-114).\nمثال: `/surah 2`",
+        "juz_prompt": "الرجاء إدخال رقم جزء صحيح (1-30).\nمثال: `/juz 15`",
+        "audio_link_message": "🔗 [تحميل / تشغيل الصوت هنا]({audio_url})\n\nيمكنك الاستماع أو تحميل الصوت بالضغط على الرابط الأزرق أعلاه.",
+        "error_fetching": "عذراً، لم أتمكن من جلب رابط الملف الصوتي.\n\n**السبب:** لم يتم العثور على الملف الصوتي على الخادم (خطأ 404).\n**الرابط الذي تمت تجربته:** `{full_audio_url}`"
+    },
+    'tr': {
+        "welcome": "🕌 Esselamu aleyküm {username}\n\n📖 Kuran Bot'a hoş geldiniz!\n\n✍️ Metin olarak Kur'an ayetleri için:\n\n/surah <numara> — Sure numarasını girin\n/juz <numara> — Cüz numarasını girin\n\n🔊 Ses İçin (Tam Sure Tilavetleri):\n/abdulbasit <numara> 🎙️\n/yasser <numara> 🎧\n\n⚙️ Diğer Komutlar:\n🌐 /language — Dili değiştirmek için\n🆘 /support <mesaj> — Yardım için yöneticiye mesaj gönderin",
+        "language_prompt": "Lütfen bir dil seçin:",
+        "language_selected": "✅ Dil Türkçe olarak değiştirildi.",
+        "support_prompt": "Lütfen mesajınızı `/support` komutundan sonra girin.\nÖrnek: `/support Merhaba, yardıma ihtiyacım var`",
+        "support_sent": "✅ Mesajınız yöneticiye gönderildi.",
+        "force_join": "🙏 Botu kullanmak için lütfen önce kanalımıza katılın.",
+        "join_button_text": "✅ please first join channel",
+        "surah_prompt": "Lütfen geçerli bir Sure numarası girin (1-114).\nKullanım: `/surah 2`",
+        "juz_prompt": "Lütfen geçerli bir Cüz numarası girin (1-30).\nKullanım: `/juz 15`",
+        "audio_link_message": "🔗 [Sesi İndir / Oynat]({audio_url})\n\nYukarıdaki mavi bağlantıya tıklayarak sesi dinleyebilir veya indirebilirsiniz.",
+        "error_fetching": "Üzgünüm, ses bağlantısını alamadım.\n\n**Neden:** Ses dosyası sunucuda bulunamadı (404 Hatası).\n**Denenen Bağlantı:** `{full_audio_url}`"
     }
 }
 
@@ -190,61 +216,65 @@ def handle_debug(chat_id):
 # --- Webhook Handler ---
 @app.route('/', methods=['POST'])
 def webhook():
-    update = request.get_json()
-    
-    if 'callback_query' in update:
-        data = update['callback_query']['data']
-        chat_id = update['callback_query']['message']['chat']['id']
-        if data.startswith('set_lang_'):
-            lang_code = data.split('_')[-1]
-            user_languages[chat_id] = lang_code
-            send_telegram_message(chat_id, MESSAGES[get_user_lang(chat_id)]["language_selected"])
-        return 'ok'
-
-    if 'message' in update:
-        message = update['message']
-        user_id = message['from']['id']
-        chat_id = message['chat']['id']
-        user_name = message['from'].get('first_name', 'User')
-        text = message.get('text', '')
-        command_parts = text.split()
-        command = command_parts[0].lower()
-        args = command_parts[1:]
-        lang = get_user_lang(chat_id)
-
-        add_user_to_db(user_id)
-        is_admin = str(user_id) == ADMIN_ID
+    try:
+        update = request.get_json()
         
-        if not is_admin and not is_user_member(user_id):
-            channel_name = CHANNEL_ID.replace('@', '') if CHANNEL_ID else ''
-            keyboard = {"inline_keyboard": [[{"text": MESSAGES[lang]["join_button_text"], "url": f"https://t.me/{channel_name}"}]]}
-            send_telegram_message(chat_id, MESSAGES[lang]["force_join"], reply_markup=keyboard)
+        if 'callback_query' in update:
+            data = update['callback_query']['data']
+            chat_id = update['callback_query']['message']['chat']['id']
+            if data.startswith('set_lang_'):
+                lang_code = data.split('_')[-1]
+                user_languages[chat_id] = lang_code
+                send_telegram_message(chat_id, MESSAGES[get_user_lang(chat_id)]["language_selected"])
             return 'ok'
 
-        if command == '/start': send_telegram_message(chat_id, MESSAGES[lang]["welcome"].format(username=user_name))
-        elif command == '/language':
-            keyboard = {"inline_keyboard": [[{"text": "አማርኛ", "callback_data": "set_lang_am"}, {"text": "English", "callback_data": "set_lang_en"}],[{"text": "العربية", "callback_data": "set_lang_ar"}, {"text": "Türkçe", "callback_data": "set_lang_tr"}]]}
-            send_telegram_message(chat_id, MESSAGES[lang]["language_prompt"], reply_markup=keyboard)
-        elif command == '/support':
-            if not args: send_telegram_message(chat_id, MESSAGES[lang]["support_prompt"])
+        if 'message' in update:
+            message = update['message']
+            user_id = message['from']['id']
+            chat_id = message['chat']['id']
+            user_name = message['from'].get('first_name', 'User')
+            text = message.get('text', '')
+            command_parts = text.split()
+            command = command_parts[0].lower()
+            args = command_parts[1:]
+            lang = get_user_lang(chat_id)
+
+            add_user_to_db(user_id)
+            is_admin = str(user_id) == ADMIN_ID
+            
+            if not is_admin and not is_user_member(user_id):
+                channel_name = CHANNEL_ID.replace('@', '') if CHANNEL_ID else ''
+                keyboard = {"inline_keyboard": [[{"text": MESSAGES[lang]["join_button_text"], "url": f"https://t.me/{channel_name}"}]]}
+                send_telegram_message(chat_id, MESSAGES[lang]["force_join"], reply_markup=keyboard)
+                return 'ok'
+
+            if command == '/start': send_telegram_message(chat_id, MESSAGES[lang]["welcome"].format(username=user_name))
+            elif command == '/language':
+                keyboard = {"inline_keyboard": [[{"text": "አማርኛ", "callback_data": "set_lang_am"}, {"text": "English", "callback_data": "set_lang_en"}],[{"text": "العربية", "callback_data": "set_lang_ar"}, {"text": "Türkçe", "callback_data": "set_lang_tr"}]]}
+                send_telegram_message(chat_id, MESSAGES[lang]["language_prompt"], reply_markup=keyboard)
+            elif command == '/support':
+                if not args: send_telegram_message(chat_id, MESSAGES[lang]["support_prompt"])
+                else:
+                    support_message = " ".join(args)
+                    forward_message = f"🆘 *New Support Message*\n\n*From:* {user_name} (ID: `{user_id}`)\n\n*Message:* {support_message}"
+                    if ADMIN_ID: send_telegram_message(ADMIN_ID, forward_message)
+                    send_telegram_message(chat_id, MESSAGES[lang]["support_sent"])
+            elif is_admin and command == '/status': handle_status(chat_id)
+            elif is_admin and command == '/broadcast':
+                if not args: send_telegram_message(chat_id, "Usage: `/broadcast <message>`")
+                else: handle_broadcast(chat_id, " ".join(args))
+            elif is_admin and command == '/debug': handle_debug(chat_id)
+            elif command == '/surah': handle_surah(chat_id, args, lang)
+            elif command == '/juz': handle_juz(chat_id, args, lang)
             else:
-                support_message = " ".join(args)
-                forward_message = f"🆘 *New Support Message*\n\n*From:* {user_name} (ID: `{user_id}`)\n\n*Message:* {support_message}"
-                if ADMIN_ID: send_telegram_message(ADMIN_ID, forward_message)
-                send_telegram_message(chat_id, MESSAGES[lang]["support_sent"])
-        elif is_admin and command == '/status': handle_status(chat_id)
-        elif is_admin and command == '/broadcast':
-            if not args: send_telegram_message(chat_id, "Usage: `/broadcast <message>`")
-            else: handle_broadcast(chat_id, " ".join(args))
-        elif is_admin and command == '/debug': handle_debug(chat_id)
-        elif command == '/surah': handle_surah(chat_id, args, lang)
-        elif command == '/juz': handle_juz(chat_id, args, lang)
-        else:
-            reciter_command = command.replace('/', '')
-            if reciter_command in RECITERS:
-                handle_recitation(chat_id, args, lang, reciter_command)
+                reciter_command = command.replace('/', '')
+                if reciter_command in RECITERS:
+                    handle_recitation(chat_id, args, lang, reciter_command)
+    except Exception as e:
+        print(f"!!! CRITICAL ERROR IN WEBHOOK: {e}")
+
     return 'ok'
 
 @app.route('/')
 def index():
-    return "Final Bot is running with all features!"
+    return "Final Bot is running with all features and languages fixed!"
