@@ -248,4 +248,3 @@ def webhook():
 @app.route('/')
 def index():
     return "Final Bot is running with all features!"
-�
