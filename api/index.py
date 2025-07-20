@@ -20,7 +20,11 @@ RECITERS = {
     'yasser': {'name': 'Yasser Al-Dosari', 'identifier': 'yasser_ad-dussary'},
 }
 
+# --- Caching and Session Management ---
 user_languages = {}
+# *** አዲስ: የቻናል አባልነትን ለጊዜው ለማስታወስ ***
+user_membership_cache = {}
+
 
 MESSAGES = {
     'am': {
@@ -50,7 +54,7 @@ MESSAGES = {
         "error_fetching": "Sorry, I could not get the audio link.\n\n**Reason:** The audio file was not found on the server (404 Error).\n**Attempted Link:** `{full_audio_url}`"
     },
     'ar': {
-        "welcome": "🕌 السلام عليكم {username}\n\n📖 أهلاً بك في بوت القرآن!\n\n✍️ لآيات القرآن كنص:\n\n/surah <رقم> — أدخل رقم السورة\n/juz <رقم> — أدخل رقم الجزء\n\n🔊 للصوت (تلاوات السور كاملة):\n/abdulbasit <رقم> �️\n/yasser <رقم> 🎧\n\n⚙️ أوامر أخرى:\n🌐 /language — لتغيير اللغة\n🆘 /support <رسالة> — أرسل رسالة إلى المسؤول للمساعدة",
+        "welcome": "🕌 السلام عليكم {username}\n\n📖 أهلاً بك في بوت القرآن!\n\n✍️ لآيات القرآن كنص:\n\n/surah <رقم> — أدخل رقم السورة\n/juz <رقم> — أدخل رقم الجزء\n\n🔊 للصوت (تلاوات السور كاملة):\n/abdulbasit <رقم> 🎙️\n/yasser <رقم> 🎧\n\n⚙️ أوامر أخرى:\n🌐 /language — لتغيير اللغة\n🆘 /support <رسالة> — أرسل رسالة إلى المسؤول للمساعدة",
         "language_prompt": "الرجاء اختيار اللغة:",
         "language_selected": "✅ تم تغيير اللغة إلى العربية.",
         "support_prompt": "الرجاء إدخال رسالتك بعد أمر `/support`.\nمثال: `/support مرحباً، أحتاج إلى مساعدة`",
@@ -118,15 +122,27 @@ def send_telegram_message(chat_id, text, parse_mode="Markdown", reply_markup=Non
 def get_user_lang(chat_id):
     return user_languages.get(chat_id, 'am')
 
+# *** የተሻሻለ የአባልነት ማረጋገጫ (ከ Cache ጋር) ***
 def is_user_member(user_id):
     if not CHANNEL_ID: return True
+    
+    # መጀመሪያ ከ Cache ላይ እንፈትሻለን
+    cached_status = user_membership_cache.get(user_id)
+    if cached_status and (time.time() - cached_status['timestamp'] < 300): # 5 minutes cache
+        return cached_status['is_member']
+
+    # Cache ላይ ከሌለ ወይም ጊዜው ካለፈ፣ ከ Telegram እንጠይቃለን
     try:
         url = f"https://api.telegram.org/bot{TOKEN}/getChatMember"
         payload = {'chat_id': CHANNEL_ID, 'user_id': user_id}
         response = requests.get(url, params=payload)
         status = response.json()['result']['status']
-        return status in ['creator', 'administrator', 'member']
-    except Exception: return False
+        is_member = status in ['creator', 'administrator', 'member']
+        # ውጤቱን Cache ላይ እናስቀምጣለን
+        user_membership_cache[user_id] = {'is_member': is_member, 'timestamp': time.time()}
+        return is_member
+    except Exception: 
+        return False
 
 # --- Bot Feature Functions ---
 def handle_surah(chat_id, args, lang):
@@ -239,7 +255,6 @@ def webhook():
             args = command_parts[1:]
             lang = get_user_lang(chat_id)
 
-            add_user_to_db(user_id)
             is_admin = str(user_id) == ADMIN_ID
             
             if not is_admin and not is_user_member(user_id):
@@ -248,7 +263,10 @@ def webhook():
                 send_telegram_message(chat_id, MESSAGES[lang]["force_join"], reply_markup=keyboard)
                 return 'ok'
 
-            if command == '/start': send_telegram_message(chat_id, MESSAGES[lang]["welcome"].format(username=user_name))
+            if command == '/start':
+                # *** የተሻሻለ: ተጠቃሚውን የሚመዘግበው /start ሲል ብቻ ነው ***
+                add_user_to_db(user_id)
+                send_telegram_message(chat_id, MESSAGES[lang]["welcome"].format(username=user_name))
             elif command == '/language':
                 keyboard = {"inline_keyboard": [[{"text": "አማርኛ", "callback_data": "set_lang_am"}, {"text": "English", "callback_data": "set_lang_en"}],[{"text": "العربية", "callback_data": "set_lang_ar"}, {"text": "Türkçe", "callback_data": "set_lang_tr"}]]}
                 send_telegram_message(chat_id, MESSAGES[lang]["language_prompt"], reply_markup=keyboard)
@@ -277,4 +295,4 @@ def webhook():
 
 @app.route('/')
 def index():
-    return "Final Bot is running with all features and languages fixed!"
+    return "Final Bot is running with performance optimizations!"
