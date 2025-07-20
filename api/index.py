@@ -36,13 +36,12 @@ MESSAGES = {
         "join_button_text": "✅ please first join channel",
         "surah_prompt": "እባкዎ ትክክለኛ የሱራ ቁጥር ያስገቡ (1-114)።\nአጠቃቀም: `/surah 2`",
         "juz_prompt": "እባкዎ ትክክለኛ የጁዝ ቁጥር ያስገቡ (1-30)።\nአጠቃቀም: `/juz 15`",
-        # *** የተስተካከለው መልዕክት ***
         "reciter_prompt": "እባкዎ ከቃሪኡ ስም ቀጥሎ የሱራውን ቁጥር ያስገቡ (1-114)።\nአጠቃቀም: `/{reciter_key} 2`",
         "audio_link_message": "🔗 [Download / Play Audio Here]({audio_url})\n\nከላይ ያለውን ሰማያዊ ሊንክ በመጫን ድምጹን በቀጥታ ማዳመጥ ወይም ማውረድ ይችላሉ።",
         "error_fetching": "ይቅርታ፣ የድምጽ ፋይሉን ሊንክ ማግኘት አልቻልኩም።\n\n**ምክንያት:** የድምጽ ፋይሉ በድረ-ገጹ ላይ አልተገኘም (404 Error)።\n**የተሞከረው ሊንክ:** `{full_audio_url}`"
     },
     'en': {
-        "welcome": "🕌 Assalamu Alaikum {username}\n\n📖 Welcome to the Quran Bot!\n\n✍️ For Quran verses in text:\n\n/surah <number> — Enter Surah number\n/juz <number> — Enter Juz' number\n\n🔊 For Audio (Full Surah Recitations):\n/abdulbasit <number> 🎙️\n/yasser <number> 🎧\n\n⚙️ Other Commands:\n🌐 /language — To change language\n🆘 /support <message> — Send a message to the admin for help",
+        "welcome": "🕌 Assalamu Alaikum {username}\n\n📖 Welcome to the Quran Bot!\n\n✍️ For Quran verses in text:\n\n/surah <number> — Enter Surah number\n/juz <number> — Enter Juz' number\n\n🔊 For Audio (Full Surah Recitations):\n/abdulbasit <number> 🎙️\n/yasser <number> 🎧\n\n⚙️ Other Commands:\n� /language — To change language\n🆘 /support <message> — Send a message to the admin for help",
         "language_prompt": "Please select a language:",
         "language_selected": "✅ Language changed to English.",
         "support_prompt": "Please enter your message after the `/support` command.\nExample: `/support Hello, I need help`",
@@ -51,7 +50,6 @@ MESSAGES = {
         "join_button_text": "✅ please first join channel",
         "surah_prompt": "Please provide a valid Surah number (1-114).\nUsage: `/surah 2`",
         "juz_prompt": "Please provide a valid Juz' number (1-30).\nUsage: `/juz 15`",
-        # *** Corrected Message ***
         "reciter_prompt": "Please enter the Surah number after the reciter's name (1-114).\nUsage: `/{reciter_key} 2`",
         "audio_link_message": "🔗 [Download / Play Audio Here]({audio_url})\n\nYou can listen or download the audio by clicking the blue link above.",
         "error_fetching": "Sorry, I could not get the audio link.\n\n**Reason:** The audio file was not found on the server (404 Error).\n**Attempted Link:** `{full_audio_url}`"
@@ -177,7 +175,6 @@ def handle_juz(chat_id, args, lang):
 def handle_recitation(chat_id, args, lang, reciter_key):
     full_audio_url = ""
     try:
-        # *** የተስተካከለው ክፍል ***
         if not args:
             send_telegram_message(chat_id, MESSAGES[lang]["reciter_prompt"].format(reciter_key=reciter_key))
             return
@@ -267,6 +264,9 @@ def webhook():
                 channel_name = CHANNEL_ID.replace('@', '') if CHANNEL_ID else ''
                 keyboard = {"inline_keyboard": [[{"text": MESSAGES[lang]["join_button_text"], "url": f"https://t.me/{channel_name}"}]]}
                 send_telegram_message(chat_id, MESSAGES[lang]["force_join"], reply_markup=keyboard)
+                # *** የተስተካከለው ክፍል ***
+                # የድሮውን የተሳሳተ ማስታወሻ እናጠፋለን
+                user_membership_cache.pop(user_id, None)
                 return 'ok'
 
             if command == '/start':
@@ -300,4 +300,4 @@ def webhook():
 
 @app.route('/')
 def index():
-    return "Final Bot is running with performance optimizations and message fixes!"
+    return "Final Bot is running with all features and cache fix!"
