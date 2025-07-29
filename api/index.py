@@ -4,6 +4,7 @@ import json
 import logging
 import time
 from flask import Flask, request
+from pathlib import Path
 
 # --- Basic Configuration ---
 # Set up logging to see detailed output in your Vercel logs
@@ -11,13 +12,59 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 app = Flask(__name__)
 
+# --- Load Environment Variables from .env file if it exists ---
+def load_env_file():
+    """Load environment variables from .env file for local development"""
+    env_file = Path('.env')
+    if env_file.exists():
+        logging.info("Loading environment variables from .env file")
+        with open(env_file) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    os.environ[key.strip()] = value.strip()
+
+# Load .env file if running locally
+load_env_file()
+
 # --- Environment Variables ---
-# It's crucial that these are all set correctly in your Vercel project settings.
+# It's crucial that these are all set correctly in your Vercel project settings or .env file.
 TOKEN = os.environ.get('TELEGRAM_TOKEN')
 ADMIN_ID = os.environ.get('ADMIN_ID')
 CHANNEL_ID = os.environ.get('CHANNEL_ID')
 JSONBIN_API_KEY = os.environ.get('JSONBIN_API_KEY')
 JSONBIN_BIN_ID = os.environ.get('JSONBIN_BIN_ID')
+
+# --- Environment Validation ---
+def validate_environment():
+    """Check if all required environment variables are set"""
+    required_vars = {
+        'TELEGRAM_TOKEN': TOKEN,
+        'ADMIN_ID': ADMIN_ID,
+        'JSONBIN_API_KEY': JSONBIN_API_KEY,
+        'JSONBIN_BIN_ID': JSONBIN_BIN_ID
+    }
+    
+    missing_vars = []
+    for var_name, var_value in required_vars.items():
+        if not var_value or var_value.startswith('your_'):
+            missing_vars.append(var_name)
+    
+    if missing_vars:
+        error_msg = f"❌ CRITICAL ERROR: Missing environment variables: {', '.join(missing_vars)}"
+        logging.error(error_msg)
+        logging.error("📋 Please set these variables in your environment or .env file:")
+        for var in missing_vars:
+            logging.error(f"   - {var}")
+        logging.error("📖 See README.md for setup instructions")
+        return False
+    
+    logging.info("✅ All required environment variables are configured")
+    return True
+
+# Validate environment on startup
+ENV_VALID = validate_environment()
 
 # --- Constants ---
 QURAN_API_BASE_URL = 'http://api.alquran.cloud/v1'
@@ -273,6 +320,11 @@ def handle_broadcast(admin_id, message_text):
 # --- Webhook Handler ---
 @app.route('/', methods=['POST'])
 def webhook():
+    # Check if environment is properly configured
+    if not ENV_VALID:
+        logging.error("❌ Webhook called but environment variables are missing!")
+        return 'Configuration Error: Missing environment variables', 500
+    
     try:
         update = request.get_json()
 
@@ -353,7 +405,31 @@ def webhook():
 
 @app.route('/', methods=['GET'])
 def index():
-    return "Quran Bot is running.", 200
+    if not ENV_VALID:
+        return """
+        <h1>🕌 Quran Bot - Configuration Error</h1>
+        <p><strong>❌ Bot is not running due to missing environment variables.</strong></p>
+        <h2>Required Environment Variables:</h2>
+        <ul>
+            <li>TELEGRAM_TOKEN - Get from @BotFather on Telegram</li>
+            <li>ADMIN_ID - Your Telegram user ID (numeric)</li>
+            <li>JSONBIN_API_KEY - Get from JSONBin.io</li>
+            <li>JSONBIN_BIN_ID - Your JSONBin.io bin ID</li>
+            <li>CHANNEL_ID - Optional: Channel users must join</li>
+        </ul>
+        <h2>Setup Instructions:</h2>
+        <ol>
+            <li>Set the environment variables in your hosting platform</li>
+            <li>Or create a .env file for local development</li>
+            <li>See README.md for detailed instructions</li>
+        </ol>
+        """, 500
+    else:
+        return """
+        <h1>🕌 Quran Bot</h1>
+        <p><strong>✅ Bot is running and properly configured!</strong></p>
+        <p>Your Telegram bot is ready to receive messages.</p>
+        """, 200
 
 if __name__ == "__main__":
     app.run(debug=True)
